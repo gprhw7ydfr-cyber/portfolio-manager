@@ -1,8 +1,6 @@
 import { useState } from "react";
-import {
-  MortgageCalculatorService,
-  RepaymentFrequency,
-} from "../../services/MortgageCalculatorService";
+import { MortgageEngine } from "../../engines/MortgageEngine";
+import type { RepaymentFrequency } from "../../domain/mortgage/MortgageInput";
 
 export default function MortgageCalculator() {
   const [principal, setPrincipal] = useState(500000);
@@ -11,7 +9,7 @@ export default function MortgageCalculator() {
   const [frequency, setFrequency] =
     useState<RepaymentFrequency>("monthly");
 
-  const result = MortgageCalculatorService.calculate({
+  const result = MortgageEngine.simulate({
     principal,
     annualInterestRate: rate,
     years,
