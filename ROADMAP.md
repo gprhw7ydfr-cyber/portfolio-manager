@@ -59,11 +59,15 @@ Verified: build/lint clean, no regression against the Phase 0/1 baseline, and a 
 
 Verified: build/lint clean, math hand-checked against the UI (income/expense/net totals matched exactly), the offset-linking regression-tested against Phase 0's manual offset figures, and everything survives a reload — including on genuinely old pre-Phase-3 `localStorage` data.
 
-## Phase 4 — Dashboard
+## Phase 4 — Dashboard (done)
 
-Net worth, total assets/liabilities/debt/offset/cash/equity, LVR, cash flow (weekly/monthly/annual), interest paid/forecast remaining, portfolio return, passive income. Charts: net worth, debt reduction, equity growth, asset allocation, cash flow, property values, interest paid, loan balance.
+- **`calculateDashboardStats`** (`src/domain/dashboard/calculateDashboardStats.ts`) computes all 15 non-optional stats (net worth, total assets/liabilities/mortgage debt/offset/cash/equity, LVR, weekly/monthly/annual cash flow via `calculateCashFlow`, total interest paid, forecast interest remaining, portfolio return, passive income) from a `Portfolio` plus a real wall-clock "as of" date — the first place in the app that distinction matters, splitting each mortgage's amortisation schedule into paid-so-far vs. still-ahead.
+- **`calculateDashboardCharts`** (`src/domain/dashboard/calculateDashboardCharts.ts`) supplies the four charts computable from data that exists today — Asset Allocation, Property Values, Loan Balance and cumulative Interest Paid over time (the latter two resampled onto a shared calendar-year grid across every mortgage split, since schedules differ in frequency/start/length). Net Worth / Debt Reduction / Equity Growth over time are deferred — genuine multi-year trend charts need forward growth simulation across all assets, which is Phase 5/6's job.
+- **FIRE Progress skipped** (Vision marks it optional; needs a withdrawal-rate assumption nothing else in the app asks for). Portfolio Return is defined as gross rental yield, labelled as such rather than implying true time-weighted investment return.
+- Chart components (`src/components/dashboard/`) built per the `dataviz` skill: inline SVG, the skill's validated reference categorical/sequential palette (fixed asset-type → color mapping so a category never repaints), hover tooltips + crosshair on the trend lines, always-visible legends (no value gated behind hover).
+- **Dashboard is now the home screen** (`src/App.tsx` gained a `view` state + simple nav); Properties (property list, cash accounts, income/expenses — all Phase 2/3 work, unchanged) sits one click away.
 
-This phase is deliberately after 1–3: the numbers it displays are aggregates over assets/liabilities/cash flow, so it's cheap once those exist and hollow before.
+Verified: build/lint clean; every stat hand-reconciled exactly against known portfolio state (including the paid+remaining-interest identity check landing on Phase 0/3's already-verified offset figures); charts checked with real data and with an empty portfolio (no NaN/Infinity — LVR and Portfolio Return guard the zero-property case).
 
 ## Phase 5 — Strategy Simulator & Scenario Manager
 

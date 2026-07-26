@@ -119,6 +119,29 @@ select { border: 1px solid #d5e1da; border-radius: 9px; padding: 10px 32px 10px 
 .cash-flow-table thead th { color: #698075; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid #d9ebe0; }
 .cash-flow-table tbody td, .cash-flow-table tbody th { border-top: 1px solid #eaf5ee; font-weight: 700; }
 .cash-flow-table__net td, .cash-flow-table__net th { color: #1f674d; font-size: 1rem; }
+.main-nav { display: flex; gap: 4px; background: #eaf0ec; border-radius: 11px; padding: 4px; }
+.main-nav__link { border: 0; background: transparent; border-radius: 8px; padding: 8px 16px; color: #3d6657; font-size: .84rem; font-weight: 700; }
+.main-nav__link:hover { color: #1e624a; }
+.main-nav__link--active { background: #fff; color: #1e624a; box-shadow: 0 1px 4px rgba(32, 69, 49, .12); }
+.dashboard { display: grid; gap: 22px; }
+.dashboard-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.chart { display: grid; gap: 14px; }
+.chart-empty { color: #75867e; font-size: .84rem; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.allocation-segment { transition: opacity .12s; }
+.allocation-segment:hover { opacity: .82; }
+.chart-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 14px 22px; }
+.chart-legend li { display: flex; align-items: center; gap: 7px; font-size: .82rem; color: #4e6159; }
+.chart-legend__swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.chart-legend__label { font-weight: 650; }
+.chart-legend__value { color: #172b25; font-weight: 700; }
+.chart-legend__percent { color: #75867e; }
+.bar-chart__bar rect { transition: opacity .12s; }
+.bar-chart__bar:hover rect { opacity: .85; }
+.trend-chart rect { cursor: crosshair; }
+.chart-tooltip { justify-self: start; display: grid; gap: 2px; padding: 8px 12px; border-radius: 9px; background: #172b25; color: #fff; font-size: .8rem; }
+.chart-tooltip strong { font-size: .95rem; }
+.chart-tooltip span { color: #cfe3d7; }
 @media (max-width: 720px) { main { padding: 25px 16px 40px; } .app-header, .calculator__heading, .split-card__header, .property-detail__heading { align-items: start; flex-direction: column; } .split-card__actions { justify-content: start; } .split-card__body { grid-template-columns: 1fr; } .frequency-control { width: 100%; } select { width: 100%; } }
 @media (max-width: 720px) { .payment-rule { grid-template-columns: 1fr 1fr; } .payment-rule strong { grid-column: 1 / -1; padding: 0; } .payment-rule__delete { grid-column: 2; justify-self: end; } .cash-flow-rule { grid-template-columns: 1fr 1fr; } .cash-flow-rule button { grid-column: 2; justify-self: end; } }
-@media (max-width: 500px) { .split-results, .summary-card__results, .payment-rule, .rate-settings, .property-grid, .cash-account-body { grid-template-columns: 1fr; } .input-row { grid-template-columns: 1fr; gap: 4px; } .split-card__header, .split-card__body, .summary-card, .payment-plan, .rate-plan, .product-plan, .property-section { padding: 16px; } .payment-plan__heading, .rate-plan__heading, .product-plan__heading, .product-settings, .property-section__heading { align-items: start; flex-direction: column; } .payment-rule__delete { grid-column: 1; justify-self: end; } .cash-flow-table { font-size: .78rem; } .cash-flow-table th, .cash-flow-table td { padding: 7px 6px; } }
+@media (max-width: 500px) { .split-results, .summary-card__results, .payment-rule, .rate-settings, .property-grid, .cash-account-body { grid-template-columns: 1fr; } .input-row { grid-template-columns: 1fr; gap: 4px; } .split-card__header, .split-card__body, .summary-card, .payment-plan, .rate-plan, .product-plan, .property-section { padding: 16px; } .payment-plan__heading, .rate-plan__heading, .product-plan__heading, .product-settings, .property-section__heading { align-items: start; flex-direction: column; } .payment-rule__delete { grid-column: 1; justify-self: end; } .cash-flow-table { font-size: .78rem; } .cash-flow-table th, .cash-flow-table td { padding: 7px 6px; } .main-nav { width: 100%; } .main-nav__link { flex: 1; } }

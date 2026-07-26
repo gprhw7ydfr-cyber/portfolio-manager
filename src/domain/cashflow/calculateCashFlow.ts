@@ -18,7 +18,7 @@ export interface CashFlowSummary {
   net: CashFlowRow;
 }
 
-const PERIODS_PER_YEAR: Record<CashFlowFrequency | RepaymentFrequency, number> = {
+export const PERIODS_PER_YEAR: Record<CashFlowFrequency | RepaymentFrequency, number> = {
   weekly: 52,
   fortnightly: 26,
   monthly: 12,
