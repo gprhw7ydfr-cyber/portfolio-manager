@@ -2,7 +2,7 @@
 
 Sequenced against [docs/Vision.md](docs/Vision.md). Each phase is scoped to ship something usable and to avoid re-architecting later phases — see "Foundations this phase requires" under each entry.
 
-## Phase 0 — Mortgage Engine (in progress)
+## Phase 0 — Mortgage Engine (done)
 
 Loan splits (fixed/floating), automatic refixing, offset accounts with refix top-up transfers, revolving credit, recurring extra/lump-sum payments, daily-equivalent amortisation schedule per split, portfolio-level totals.
 
@@ -25,16 +25,18 @@ Loan splits (fixed/floating), automatic refixing, offset accounts with refix top
 - Interest-Only period, Repayment Type field
 - Refinance event, effective-rate output
 
-## Phase 1 — Domain Foundations
+## Phase 1 — Domain Foundations (done)
 
 Generalise the mortgage-only domain into the shape everything else builds on. This is the highest-leverage phase — get it wrong and later phases force rework.
 
-- **Money/currency**: extend `Money` for multi-currency, configurable locale and day-count conventions (day-count itself lands in Phase 0; this generalises it beyond a single hard-coded convention)
-- **Ownership model**: `Entity` (Individual, Joint, Trust, Company, LTC, Partnership) and an ownership-percentage/entity link, reused by both Assets and Properties
-- **Asset abstraction**: base `Asset` (name, purchase price/date, current value, growth assumption, notes, ownership) with `Property` as one concrete subtype and room for Cash/TermDeposit/Shares/ETF/etc.
-- **Liability abstraction**: generalise `Mortgage` as one kind of `Liability` so the dashboard can sum liabilities without knowing loan-specific detail
-- **Portfolio aggregate**: the root object holding assets, liabilities, entities — what gets persisted, scenario-forked, and simulated
-- **Persistence**: versioned schema in `localStorage` now, structured so a later move to SQLite (Vision §14) is a storage-adapter swap, not a rewrite
+- **Money/currency**: `Money` (`src/domain/money/Money.ts`) now carries a currency (default NZD) through its factories and arithmetic, and throws on cross-currency `add`/`subtract`. Day-count itself landed in Phase 0.
+- **Ownership model**: `OwnershipEntity` (`src/domain/shared/OwnershipEntity.ts`, Individual/Joint/Trust/Company/LTC/Partnership) and `OwnershipStake` (`src/domain/shared/Ownership.ts`), reused by both Assets and Liabilities
+- **Asset abstraction**: `AssetBase`/`Asset` union (`src/domain/asset/Asset.ts`) with one concrete `OtherAsset` member proving the pattern — Property/Cash/Shares/etc. join as Phase 2/3 design their own fields
+- **Liability abstraction**: `LiabilityBase`/`Liability` union (`src/domain/liability/Liability.ts`) with `MortgageLiability` (`src/domain/mortgage/MortgageLiability.ts`) as the concrete type — introduces the "unlimited mortgages, each with unlimited splits" grouping the Vision calls for, wrapping the existing `MortgageSplit[]` untouched
+- **Portfolio aggregate**: `Portfolio` (`src/domain/portfolio/Portfolio.ts`) — entities/assets/liabilities, plain serializable data, no methods
+- **Persistence**: `src/services/PortfolioStorage.ts` (versioned `{schemaVersion, portfolio}` localStorage read/write) behind `src/store/PortfolioContext.tsx` + `usePortfolio()` — the only two functions that know about `localStorage`, so a future SQLite move is a storage-adapter swap, not a rewrite
+
+`MortgageCalculator` now reads/writes through `usePortfolio()` instead of local `useState`, via a `toMortgageInput` adapter — `SimulationRunner`/`MortgageEngine` needed zero changes. Verified: build/lint clean, no visible regression in the UI, and edits now survive a page reload.
 
 ## Phase 2 — Property Management
 

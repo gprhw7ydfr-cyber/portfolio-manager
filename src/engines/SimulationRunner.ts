@@ -3,7 +3,7 @@ import type { MortgageResult } from "../domain/mortgage/MortgageResult";
 import type { AmortizationPayment } from "../domain/mortgage/AmortizationPayment";
 import type { MortgageSimulationState } from "../domain/mortgage/MortgageSimulationState";
 import type { MortgageSplit } from "../domain/mortgage/MortgageSplit";
-import type { PortfolioResult } from "../domain/mortgage/PortfolioResult";
+import type { MortgageSummary } from "../domain/mortgage/MortgageSummary";
 import type { RecurringPaymentInterval } from "../domain/mortgage/RecurringPayment";
 import type { FixedRateSettings } from "../domain/mortgage/FixedRateSettings";
 import type { RevolvingCreditTransaction } from "../domain/mortgage/MortgageProduct";
@@ -14,7 +14,7 @@ interface OccurrenceCursor {
 }
 
 export class SimulationRunner {
- static run(input: MortgageInput): PortfolioResult {
+ static run(input: MortgageInput): MortgageSummary {
 
     const split: MortgageSplit = {
     id: "legacy",

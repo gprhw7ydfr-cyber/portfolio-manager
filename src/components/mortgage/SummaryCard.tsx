@@ -1,8 +1,8 @@
-import type { PortfolioResult } from "../../domain/mortgage/PortfolioResult";
+import type { MortgageSummary } from "../../domain/mortgage/MortgageSummary";
 import type { RepaymentFrequency } from "../../domain/mortgage/MortgageInput";
 import { ResultCard } from "./ResultCard";
 
-interface SummaryCardProps { result: PortfolioResult; frequency: RepaymentFrequency; }
+interface SummaryCardProps { result: MortgageSummary; frequency: RepaymentFrequency; }
 const money = (value: number) => value.toLocaleString("en-NZ", { style: "currency", currency: "NZD", maximumFractionDigits: 0 });
 
 export function SummaryCard({ result, frequency }: SummaryCardProps) {
