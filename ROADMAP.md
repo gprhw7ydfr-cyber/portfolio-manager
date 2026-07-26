@@ -6,17 +6,30 @@ Sequenced against [docs/Vision.md](docs/Vision.md). Each phase is scoped to ship
 
 Loan splits (fixed/floating), automatic refixing, offset accounts with refix top-up transfers, revolving credit, recurring extra/lump-sum payments, daily-equivalent amortisation schedule per split, portfolio-level totals.
 
-**Remaining before Phase 1:**
+**Gaps against Vision §5** (Mortgage Engine) found on review, not yet covered above:
+- Interest is periodic-equivalent (`annualRate / periodsPerYear` applied per payment), not true day-count accrual — Vision §5 specifies "Interest calculated daily," and this is core simulation math, not a UI nicety
+- No Interest-Only period or Repayment Type field on `MortgageSplit`/`MortgageProduct`
+- No refinance event (only `RateChangeEvent`/`BalanceAdjustmentEvent` exist)
+- No "Effective Interest Rate" output on `MortgageResult`
+- Offset balance is static for the life of the loan — no accrual, no ongoing deposits modelled; needs an explicit decision on whether that's intended v1 scope
+
+**Do now, before Phase 1** — either quick cleanup or touches the simulation core that Phase 1's `Liability` abstraction will be built around, so worth getting right once rather than migrating broken math twice:
 - Fix known bugs: duplicate-split naming ([MortgageCalculator.tsx](src/components/mortgage/MortgageCalculator.tsx)), offset top-up transfer loop bailing early ([SimulationRunner.ts](src/engines/SimulationRunner.ts))
 - Enable `strict` TypeScript
 - Remove dead scaffold classes (`Mortgage.ts`, `LoanSplit.ts`, `InterestRate.ts`, empty stubs) superseded by the interface-based domain model
 - Make `SimulationRunner`'s recurring-payment/transaction lookups O(n) instead of O(n²) — this becomes load-bearing once Monte Carlo (Phase 6) runs thousands of simulations
+- Switch interest accrual to daily/day-count
+- Memoise the `MortgageEngine.simulate()` call in the UI so typing doesn't re-run the full amortisation on every keystroke
+
+**Defer to just after Phase 1** — additive fields that would just get reshaped again once the generic `Liability` type lands, so build them on that shape directly instead of on `MortgageSplit` twice:
+- Interest-Only period, Repayment Type field
+- Refinance event, effective-rate output
 
 ## Phase 1 — Domain Foundations
 
 Generalise the mortgage-only domain into the shape everything else builds on. This is the highest-leverage phase — get it wrong and later phases force rework.
 
-- **Money/currency**: extend `Money` for multi-currency, configurable locale/day-count conventions (interest is currently monthly-equivalent, not true daily — needed for "Interest calculated daily" in Vision §5)
+- **Money/currency**: extend `Money` for multi-currency, configurable locale and day-count conventions (day-count itself lands in Phase 0; this generalises it beyond a single hard-coded convention)
 - **Ownership model**: `Entity` (Individual, Joint, Trust, Company, LTC, Partnership) and an ownership-percentage/entity link, reused by both Assets and Properties
 - **Asset abstraction**: base `Asset` (name, purchase price/date, current value, growth assumption, notes, ownership) with `Property` as one concrete subtype and room for Cash/TermDeposit/Shares/ETF/etc.
 - **Liability abstraction**: generalise `Mortgage` as one kind of `Liability` so the dashboard can sum liabilities without knowing loan-specific detail

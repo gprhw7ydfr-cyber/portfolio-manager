@@ -1,17 +1,19 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { MortgageEngine } from "../../engines/MortgageEngine";
 import type { RepaymentFrequency } from "../../domain/mortgage/MortgageInput";
 import type { MortgageSplit } from "../../domain/mortgage/MortgageSplit";
 import { SplitCard } from "./SplitCard";
 import { SummaryCard } from "./SummaryCard";
 
+const START_DATE = new Date(2026, 6, 25);
+
 const createSplit = (name: string, values?: Partial<MortgageSplit>): MortgageSplit => ({
-  id: crypto.randomUUID(),
-  name,
   principal: 100000,
   annualInterestRate: 5.75,
   years: 30,
   ...values,
+  id: crypto.randomUUID(),
+  name,
 });
 
 export default function MortgageCalculator() {
@@ -22,11 +24,10 @@ export default function MortgageCalculator() {
     createSplit("Main Mortgage", { principal: 500000 }),
   ]);
 
-  const result = MortgageEngine.simulate({
-    frequency,
-    startDate: new Date(2026, 6, 25),
-    splits,
-  });
+  const result = useMemo(
+    () => MortgageEngine.simulate({ frequency, startDate: START_DATE, splits }),
+    [frequency, splits],
+  );
 
   const updateSplit = (id: string, changes: Partial<MortgageSplit>) => {
     setSplits((current) => current.map((split) =>
@@ -39,7 +40,7 @@ export default function MortgageCalculator() {
       const index = current.findIndex((split) => split.id === id);
       const source = current[index];
       if (!source) return current;
-      const copy = createSplit(`${source.name} copy`, { ...source, id: crypto.randomUUID() });
+      const copy = createSplit(`${source.name} copy`, source);
       return [...current.slice(0, index + 1), copy, ...current.slice(index + 1)];
     });
   };

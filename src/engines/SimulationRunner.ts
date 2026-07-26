@@ -4,10 +4,14 @@ import type { AmortizationPayment } from "../domain/mortgage/AmortizationPayment
 import type { MortgageSimulationState } from "../domain/mortgage/MortgageSimulationState";
 import type { MortgageSplit } from "../domain/mortgage/MortgageSplit";
 import type { PortfolioResult } from "../domain/mortgage/PortfolioResult";
-import type { RecurringPayment, RecurringPaymentInterval } from "../domain/mortgage/RecurringPayment";
+import type { RecurringPaymentInterval } from "../domain/mortgage/RecurringPayment";
 import type { FixedRateSettings } from "../domain/mortgage/FixedRateSettings";
 import type { RevolvingCreditTransaction } from "../domain/mortgage/MortgageProduct";
 import { BalanceAdjustmentEvent } from "../domain/mortgage/events/BalanceAdjustmentEvent";
+
+interface OccurrenceCursor {
+  next: Date | null;
+}
 
 export class SimulationRunner {
  static run(input: MortgageInput): PortfolioResult {
@@ -15,9 +19,9 @@ export class SimulationRunner {
     const split: MortgageSplit = {
     id: "legacy",
     name: "Mortgage",
-    principal: input.principal,
-    annualInterestRate: input.annualInterestRate,
-    years: input.years,
+    principal: input.principal ?? 0,
+    annualInterestRate: input.annualInterestRate ?? 0,
+    years: input.years ?? 30,
       events: input.events,
   };
 
@@ -38,7 +42,8 @@ export class SimulationRunner {
       let amountNeeded = Math.max((targetSplit.offsetSettings.refixLoanBalanceTarget ?? 0) - targetBalance, 0);
 
       for (const sourceIndex of sourceIndices) {
-        if (amountNeeded <= 0 || sourceIndex === targetIndex) break;
+        if (amountNeeded <= 0) break;
+        if (sourceIndex === targetIndex) continue;
         const sourceBalance = results[sourceIndex].schedule[paymentNumber - 1]?.openingBalance ?? 0;
         const transfer = Math.min(amountNeeded, sourceBalance);
         if (transfer <= 0) continue;
@@ -99,6 +104,15 @@ return portfolio;
 
     const events = [...(input.events ?? []), ...(split.events ?? [])];
 
+    const paymentCursors = (split.recurringPayments ?? []).map((payment) => ({
+      payment,
+      cursor: this.createOccurrenceCursor(payment.startDate, payment.amount),
+    }));
+    const transactionCursors = (split.revolvingCreditSettings?.transactions ?? []).map((transaction) => ({
+      transaction,
+      cursor: this.createOccurrenceCursor(transaction.startDate, transaction.amount),
+    }));
+
     let totalRepayment = 0;
     let totalInterest = 0;
     const fixedRateSettings = split.rateType === "fixed" && this.isValidFixedRateSettings(split.fixedRateSettings)
@@ -138,13 +152,17 @@ return portfolio;
         ? new Date(input.startDate.getTime() - 1)
         : this.calculatePaymentDate(input.startDate, input.frequency, paymentNumber - 1);
 
-      const periodicRate = state.annualRate / 100 / periodsPerYear;
+      const periodStartDate = paymentNumber === 1
+        ? this.calculatePaymentDate(input.startDate, input.frequency, 0)
+        : previousPaymentDate;
+      const daysInPeriod = this.daysBetween(periodStartDate, paymentDate);
+      const dailyRate = state.annualRate / 100 / 365;
 
       if (split.productType === "revolving-credit") {
         state.balance = this.applyRevolvingCreditTransactions(
           state.balance,
           split.revolvingCreditSettings?.creditLimit ?? split.principal,
-          split.revolvingCreditSettings?.transactions ?? [],
+          transactionCursors,
           previousPaymentDate,
           paymentDate,
         );
@@ -152,17 +170,22 @@ return portfolio;
 
       const openingBalance = state.balance;
 
-      const extraPayment = this.recurringPaymentTotal(
-        split.recurringPayments ?? [],
-        previousPaymentDate,
-        paymentDate,
+      const extraPayment = paymentCursors.reduce(
+        (total, { payment, cursor }) =>
+          total + this.occurrencesInPeriod(cursor, payment.interval, previousPaymentDate, paymentDate) * payment.amount,
+        0,
       );
 
+      const chargeableBalance = split.productType === "revolving-credit"
+        ? openingBalance
+        : Math.max(openingBalance - (state.offsetBalance ?? 0), 0);
+      const interestForPeriod = chargeableBalance * dailyRate * daysInPeriod;
+
       const paymentAmounts = split.productType === "revolving-credit"
-        ? this.calculateRevolvingCreditPayment(openingBalance, periodicRate)
+        ? this.calculateRevolvingCreditPayment(openingBalance, interestForPeriod)
         : this.calculatePaymentAmounts(
           openingBalance,
-          Math.max(openingBalance - (state.offsetBalance ?? 0), 0) * periodicRate,
+          interestForPeriod,
           scheduledRepayment,
           extraPayment,
         );
@@ -298,8 +321,7 @@ private static calculatePaymentAmounts(
   };
 }
 
-private static calculateRevolvingCreditPayment(openingBalance: number, periodicRate: number) {
-  const interest = openingBalance * periodicRate;
+private static calculateRevolvingCreditPayment(openingBalance: number, interest: number) {
   return {
     interest,
     principalPaid: 0,
@@ -309,53 +331,51 @@ private static calculateRevolvingCreditPayment(openingBalance: number, periodicR
   };
 }
 
+private static daysBetween(from: Date, to: Date): number {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.max(Math.round((to.getTime() - from.getTime()) / msPerDay), 0);
+}
+
 private static applyRevolvingCreditTransactions(
   balance: number,
   creditLimit: number,
-  transactions: RevolvingCreditTransaction[],
+  transactionCursors: { transaction: RevolvingCreditTransaction; cursor: OccurrenceCursor }[],
   afterDate: Date,
   onOrBeforeDate: Date,
 ): number {
-  const deposits = this.recurringTransactionTotal(transactions, "deposit", afterDate, onOrBeforeDate);
-  const withdrawals = this.recurringTransactionTotal(transactions, "withdrawal", afterDate, onOrBeforeDate);
+  let deposits = 0;
+  let withdrawals = 0;
+
+  for (const { transaction, cursor } of transactionCursors) {
+    const occurrences = this.occurrencesInPeriod(cursor, transaction.interval, afterDate, onOrBeforeDate);
+    if (occurrences === 0) continue;
+    if (transaction.type === "deposit") deposits += occurrences * transaction.amount;
+    else withdrawals += occurrences * transaction.amount;
+  }
+
   return Math.min(Math.max(balance - deposits + withdrawals, 0), Math.max(creditLimit, 0));
 }
 
-private static recurringTransactionTotal(
-  transactions: RevolvingCreditTransaction[],
-  type: RevolvingCreditTransaction["type"],
-  afterDate: Date,
-  onOrBeforeDate: Date,
-): number {
-  return transactions
-    .filter((transaction) => transaction.type === type)
-    .reduce((total, transaction) => total + this.occurrencesInPeriod(transaction, afterDate, onOrBeforeDate) * transaction.amount, 0);
-}
-
-private static recurringPaymentTotal(
-  payments: RecurringPayment[],
-  afterDate: Date,
-  onOrBeforeDate: Date,
-): number {
-  return payments.reduce((total, payment) => total + this.occurrencesInPeriod(payment, afterDate, onOrBeforeDate) * payment.amount, 0);
-}
-
+/** Advances `cursor` in place past every occurrence up to `onOrBeforeDate`, so repeated calls across
+ *  chronologically increasing, contiguous periods do O(1) amortised work instead of re-walking from the start. */
 private static occurrencesInPeriod(
-  payment: Pick<RecurringPayment, "amount" | "startDate" | "interval">,
+  cursor: OccurrenceCursor,
+  interval: RecurringPaymentInterval,
   afterDate: Date,
   onOrBeforeDate: Date,
 ): number {
-  if (!Number.isFinite(payment.amount) || payment.amount <= 0) return 0;
-const occurrence = new Date(`${payment.startDate}T00:00:00`);
-  if (Number.isNaN(occurrence.getTime()) || occurrence > onOrBeforeDate) return 0;
-
   let count = 0;
-  while (occurrence <= onOrBeforeDate) {
-    if (occurrence > afterDate) count += 1;
-    this.addInterval(occurrence, payment.interval);
+  while (cursor.next && cursor.next <= onOrBeforeDate) {
+    if (cursor.next > afterDate) count += 1;
+    this.addInterval(cursor.next, interval);
   }
-
   return count;
+}
+
+private static createOccurrenceCursor(startDate: string, amount: number): OccurrenceCursor {
+  if (!Number.isFinite(amount) || amount <= 0) return { next: null };
+  const occurrence = new Date(`${startDate}T00:00:00`);
+  return { next: Number.isNaN(occurrence.getTime()) ? null : occurrence };
 }
 
 private static applyAutomaticRefix(
