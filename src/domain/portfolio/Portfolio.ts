@@ -1,6 +1,7 @@
 import type { OwnershipEntity } from "../shared/OwnershipEntity";
 import type { Asset } from "../asset/Asset";
 import type { Liability } from "../liability/Liability";
+import type { CashFlowItem } from "../cashflow/CashFlowItem";
 
 export interface Portfolio {
   id: string;
@@ -8,4 +9,5 @@ export interface Portfolio {
   entities: OwnershipEntity[];
   assets: Asset[];
   liabilities: Liability[];
+  cashFlowItems: CashFlowItem[];
 }

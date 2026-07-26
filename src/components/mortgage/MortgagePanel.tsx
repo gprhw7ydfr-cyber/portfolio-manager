@@ -5,11 +5,13 @@ import { createDefaultSplit } from "../../domain/mortgage/createDefaultSplit";
 import type { RepaymentFrequency } from "../../domain/mortgage/MortgageInput";
 import type { MortgageSplit } from "../../domain/mortgage/MortgageSplit";
 import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability";
+import type { CashAccount } from "../../domain/cash/CashAccount";
 import { SplitCard } from "./SplitCard";
 import { SummaryCard } from "./SummaryCard";
 
 interface MortgagePanelProps {
   mortgage: MortgageLiability;
+  cashAccounts: CashAccount[];
   onChange: (changes: Partial<MortgageLiability>) => void;
   title?: string;
   subtitle?: string;
@@ -17,13 +19,14 @@ interface MortgagePanelProps {
 
 export function MortgagePanel({
   mortgage,
+  cashAccounts,
   onChange,
   title = "Plan your lending, split by split.",
   subtitle = "Adjust each loan independently and see the combined position below.",
 }: MortgagePanelProps) {
   const result = useMemo(
-    () => MortgageEngine.simulate(toMortgageInput(mortgage)),
-    [mortgage],
+    () => MortgageEngine.simulate(toMortgageInput(mortgage, cashAccounts)),
+    [mortgage, cashAccounts],
   );
 
   const updateSplits = (updater: (splits: MortgageSplit[]) => MortgageSplit[]) => {
@@ -89,6 +92,7 @@ export function MortgagePanel({
             canDelete={mortgage.splits.length > 1}
             canMoveUp={index > 0}
             canMoveDown={index < mortgage.splits.length - 1}
+            availableAccounts={cashAccounts}
             onChange={(changes) => updateSplit(split.id, changes)}
             onDelete={() => updateSplits((splits) => splits.filter((item) => item.id !== split.id))}
             onDuplicate={() => duplicateSplit(split.id)}

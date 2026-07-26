@@ -2,6 +2,7 @@ import { usePortfolio } from "../../store/usePortfolio";
 import { updateById } from "../../domain/shared/updateById";
 import { createDefaultSplit } from "../../domain/mortgage/createDefaultSplit";
 import { isPropertyAsset } from "../../domain/property/PropertyAsset";
+import { isCashAccount } from "../../domain/cash/CashAccount";
 import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput";
 import { MortgagePanel } from "../mortgage/MortgagePanel";
 import { CapitalImprovementRow } from "./CapitalImprovementRow";
@@ -33,6 +34,7 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
   );
   const attachedMortgage = mortgages.find((mortgage) => mortgage.propertyId === propertyId);
   const unattachedMortgages = mortgages.filter((mortgage) => !mortgage.propertyId);
+  const cashAccounts = portfolio.assets.filter(isCashAccount);
 
   const updateProperty = (changes: Partial<PropertyAsset>) => {
     setPortfolio((current) => ({
@@ -277,6 +279,7 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
         {attachedMortgage ? (
           <MortgagePanel
             mortgage={attachedMortgage}
+            cashAccounts={cashAccounts}
             onChange={(changes) => updateMortgage(attachedMortgage.id, changes)}
             title={attachedMortgage.name}
             subtitle="Secured against this property."

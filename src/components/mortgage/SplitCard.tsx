@@ -4,8 +4,9 @@ import { InputRow } from "./InputRow";
 import { ResultCard } from "./ResultCard";
 import type { RecurringPayment, RecurringPaymentInterval } from "../../domain/mortgage/RecurringPayment";
 import type { FixedRateSettings } from "../../domain/mortgage/FixedRateSettings";
-import type { MortgageProductType, RevolvingCreditSettings, RevolvingCreditTransaction } from "../../domain/mortgage/MortgageProduct";
-import { numberFromInput } from "../../domain/shared/numericInput";
+import type { MortgageProductType, OffsetSettings, RevolvingCreditSettings, RevolvingCreditTransaction } from "../../domain/mortgage/MortgageProduct";
+import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput";
+import type { CashAccount } from "../../domain/cash/CashAccount";
 
 interface SplitCardProps {
   split: MortgageSplit;
@@ -13,6 +14,7 @@ interface SplitCardProps {
   canDelete: boolean;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  availableAccounts: CashAccount[];
   onChange: (changes: Partial<MortgageSplit>) => void;
   onDelete: () => void;
   onDuplicate: () => void;
@@ -39,12 +41,15 @@ const defaultFixedRateSettings: FixedRateSettings = {
 const defaultRevolvingCreditSettings: RevolvingCreditSettings = { creditLimit: 100000, transactions: [] };
 const createRevolvingTransaction = (type: RevolvingCreditTransaction["type"]): RevolvingCreditTransaction => ({ id: crypto.randomUUID(), type, amount: 500, interval: "monthly", startDate: today() });
 
-export function SplitCard({ split, result, canDelete, canMoveUp, canMoveDown, onChange, onDelete, onDuplicate, onMoveUp, onMoveDown }: SplitCardProps) {
+export function SplitCard({ split, result, canDelete, canMoveUp, canMoveDown, availableAccounts, onChange, onDelete, onDuplicate, onMoveUp, onMoveDown }: SplitCardProps) {
   const payoffDate = result.schedule.at(-1)?.paymentDate;
   const payments = split.recurringPayments ?? [];
   const updatePayment = (id: string, changes: Partial<RecurringPayment>) => onChange({
     recurringPayments: payments.map((payment) => payment.id === id ? { ...payment, ...changes } : payment),
   });
+  const offsetSettings: OffsetSettings = split.offsetSettings ?? { offsetBalance: 0 };
+  const updateOffsetSettings = (changes: Partial<OffsetSettings>) => onChange({ offsetSettings: { ...offsetSettings, ...changes } });
+  const linkedAccount = availableAccounts.find((account) => account.id === offsetSettings.linkedAccountId);
   const fixedSettings = split.fixedRateSettings ?? defaultFixedRateSettings;
   const updateFixedSettings = (changes: Partial<FixedRateSettings>) => onChange({
     fixedRateSettings: { ...fixedSettings, ...changes },
@@ -91,7 +96,37 @@ export function SplitCard({ split, result, canDelete, canMoveUp, canMoveDown, on
           <div><span className="split-card__label">Mortgage product</span><h4>How this split works</h4></div>
           <label className="rate-type"><span>Product</span><select value={split.productType ?? "principal-and-interest"} onChange={(event) => onChange({ productType: event.target.value as MortgageProductType })}><option value="principal-and-interest">Principal &amp; interest</option><option value="offset">Offset mortgage</option><option value="revolving-credit">Revolving credit</option></select></label>
         </div>
-        {split.productType === "offset" && <div className="offset-settings"><div className="product-settings"><label><span>Linked offset balance</span><span className="inline-control"><b>$</b><input type="number" min="0" step="1000" value={split.offsetSettings?.offsetBalance ?? 0} onFocus={(event) => { if ((split.offsetSettings?.offsetBalance ?? 0) === 0) event.currentTarget.select(); }} onChange={(event) => onChange({ offsetSettings: { ...split.offsetSettings, offsetBalance: numberFromInput(split.offsetSettings?.offsetBalance ?? 0, event.target.value) } })} /></span></label><p>Your interest is calculated only on the loan balance above this amount.</p></div><label className="offset-topup"><input type="checkbox" checked={split.offsetSettings?.maintainLoanBalanceAtRefix ?? false} onChange={(event) => onChange({ offsetSettings: { ...split.offsetSettings, offsetBalance: split.offsetSettings?.offsetBalance ?? 0, maintainLoanBalanceAtRefix: event.target.checked, refixLoanBalanceTarget: split.offsetSettings?.refixLoanBalanceTarget ?? split.principal } })} /><span>Transfer principal into this offset loan whenever a fixed split refixes.</span></label>{split.offsetSettings?.maintainLoanBalanceAtRefix && <label className="offset-target"><span>Offset loan balance at refix</span><span className="inline-control"><b>$</b><input type="number" min="0" step="1000" value={split.offsetSettings.refixLoanBalanceTarget ?? 0} onFocus={(event) => { if ((split.offsetSettings?.refixLoanBalanceTarget ?? 0) === 0) event.currentTarget.select(); }} onChange={(event) => onChange({ offsetSettings: { ...split.offsetSettings, offsetBalance: split.offsetSettings?.offsetBalance ?? 0, refixLoanBalanceTarget: numberFromInput(split.offsetSettings?.refixLoanBalanceTarget ?? 0, event.target.value) } })} /></span></label>}</div>}
+        {split.productType === "offset" && <div className="offset-settings">
+          <div className="product-settings">
+            {linkedAccount ? (
+              <div className="offset-linked">
+                <span>Linked account</span>
+                <strong>{linkedAccount.name}</strong>
+                <span className="muted">{money(linkedAccount.currentValue)}</span>
+                <button className="text-button" onClick={() => updateOffsetSettings({ linkedAccountId: undefined })}>Unlink</button>
+              </div>
+            ) : (
+              <>
+                <label>
+                  <span>Linked offset balance</span>
+                  <span className="inline-control"><b>$</b><input type="number" min="0" step="1000" value={offsetSettings.offsetBalance} onFocus={selectIfZero(offsetSettings.offsetBalance)} onChange={(event) => updateOffsetSettings({ offsetBalance: numberFromInput(offsetSettings.offsetBalance, event.target.value) })} /></span>
+                </label>
+                {availableAccounts.length > 0 && (
+                  <label className="rate-type">
+                    <span>Or link a cash account</span>
+                    <select defaultValue="" onChange={(event) => { if (event.target.value) updateOffsetSettings({ linkedAccountId: event.target.value }); }}>
+                      <option value="" disabled>Choose an account&hellip;</option>
+                      {availableAccounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
+                    </select>
+                  </label>
+                )}
+              </>
+            )}
+            <p>Your interest is calculated only on the loan balance above this amount.</p>
+          </div>
+          <label className="offset-topup"><input type="checkbox" checked={offsetSettings.maintainLoanBalanceAtRefix ?? false} onChange={(event) => updateOffsetSettings({ maintainLoanBalanceAtRefix: event.target.checked, refixLoanBalanceTarget: offsetSettings.refixLoanBalanceTarget ?? split.principal })} /><span>Transfer principal into this offset loan whenever a fixed split refixes.</span></label>
+          {offsetSettings.maintainLoanBalanceAtRefix && <label className="offset-target"><span>Offset loan balance at refix</span><span className="inline-control"><b>$</b><input type="number" min="0" step="1000" value={offsetSettings.refixLoanBalanceTarget ?? 0} onFocus={selectIfZero(offsetSettings.refixLoanBalanceTarget ?? 0)} onChange={(event) => updateOffsetSettings({ refixLoanBalanceTarget: numberFromInput(offsetSettings.refixLoanBalanceTarget ?? 0, event.target.value) })} /></span></label>}
+        </div>}
         {split.productType === "revolving-credit" && <div className="revolving-settings"><div className="product-settings"><label><span>Credit limit</span><span className="inline-control"><b>$</b><input type="number" min="0" step="1000" value={revolvingSettings.creditLimit} onFocus={(event) => { if (revolvingSettings.creditLimit === 0) event.currentTarget.select(); }} onChange={(event) => updateRevolvingSettings({ creditLimit: numberFromInput(revolvingSettings.creditLimit, event.target.value) })} /></span></label><p>Interest is serviced each repayment period. Deposits reduce the drawn balance; withdrawals increase it, up to the limit.</p></div><div className="revolving-actions"><button className="text-button" onClick={() => updateRevolvingSettings({ transactions: [...transactions, createRevolvingTransaction("deposit")] })}>+ Deposit</button><button className="text-button" onClick={() => updateRevolvingSettings({ transactions: [...transactions, createRevolvingTransaction("withdrawal")] })}>+ Withdrawal</button></div>{transactions.map((transaction) => <div className="payment-rule" key={transaction.id}><strong>{transaction.type === "deposit" ? "Deposit" : "Withdrawal"}</strong><label><span>Amount</span><span className="inline-control"><b>$</b><input type="number" min="0" value={transaction.amount} onFocus={(event) => { if (transaction.amount === 0) event.currentTarget.select(); }} onChange={(event) => updateTransaction(transaction.id, { amount: numberFromInput(transaction.amount, event.target.value) })} /></span></label><label><span>Repeats</span><select value={transaction.interval} onChange={(event) => updateTransaction(transaction.id, { interval: event.target.value as RevolvingCreditTransaction["interval"] })}><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label><label><span>First transaction</span><input type="date" value={transaction.startDate} onChange={(event) => updateTransaction(transaction.id, { startDate: event.target.value })} /></label><button className="icon-button payment-rule__delete" title="Remove transaction" onClick={() => updateRevolvingSettings({ transactions: transactions.filter((item) => item.id !== transaction.id) })}>×</button></div>)}</div>}
       </div>
       <div className="rate-plan">

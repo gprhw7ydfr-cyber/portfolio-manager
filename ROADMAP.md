@@ -48,12 +48,16 @@ Generalise the mortgage-only domain into the shape everything else builds on. Th
 
 Verified: build/lint clean, no regression against the Phase 0/1 baseline, and a property + capital improvement + mortgage attachment all survive a page reload.
 
-## Phase 3 — Cash Flow & Savings
+## Phase 3 — Cash Flow & Savings (done)
 
-- Income/expense items outside properties (salary, dividends, interest, other)
-- Cash accounts (everyday, savings, term deposit): deposits, withdrawals, interest, automatic transfers
-- Formalise the Offset Engine (Vision §6) as a linked account against one or more splits, generalising what Phase 0 built inline
-- Consolidated cash flow report at weekly/fortnightly/monthly/annual granularity
+- **`CashAccount`** (`src/domain/cash/CashAccount.ts`) joins the `Asset` union — everyday/savings/term-deposit, reusing `AssetBase.currentValue` as the balance. `AssetType`'s Phase-1 placeholder `"cash"` was refined into `"everyday" | "savings"` now that this module actually designed the shape.
+- **Portfolio-level `CashFlowItem[]`** (`src/domain/cashflow/CashFlowItem.ts`, new `Portfolio.cashFlowItems`) covers income/expenses outside properties (salary, dividends, interest, other income; insurance, living costs, maintenance, tax, other expenses) — record-keeping line items, not a simulated projection.
+- **Offset accounts link to a real `CashAccount`**: `OffsetSettings.linkedAccountId?` resolved to `offsetBalance` one layer up in `toMortgageInput` (now accepting the portfolio's assets) — `SimulationRunner` itself needed **zero changes**. Verified the resolved balance produces identical interest figures to a manually-entered offset balance.
+- **`calculateCashFlow`** (`src/domain/cashflow/calculateCashFlow.ts`) annualises `CashFlowItem`s, property income/expenses, and real mortgage repayments (via the engine, not a duplicated manual entry) onto one figure, then derives weekly/fortnightly/monthly/annual rows — rendered by `CashFlowSummaryCard` on the home screen.
+- **Deferred**: real balance simulation (cash accounts stay manually-tracked, like property `currentValue`) and "automatic transfers" (nets to zero on a consolidated report; meaningful modelling needs the balance-projection work Phase 5/6 owns) — both explicitly scoped out with the user up front, not silently dropped.
+- Backward compatibility: existing `localStorage` portfolios from Phase 1/2 sessions (predating `cashFlowItems`) are defaulted on load in `PortfolioStorage.ts` rather than breaking.
+
+Verified: build/lint clean, math hand-checked against the UI (income/expense/net totals matched exactly), the offset-linking regression-tested against Phase 0's manual offset figures, and everything survives a reload — including on genuinely old pre-Phase-3 `localStorage` data.
 
 ## Phase 4 — Dashboard
 

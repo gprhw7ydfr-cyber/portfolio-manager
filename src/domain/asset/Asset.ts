@@ -1,11 +1,13 @@
 import type { OwnershipStake } from "../shared/Ownership";
 import type { PropertyAsset } from "../property/PropertyAsset";
+import type { CashAccount } from "../cash/CashAccount";
 
 export type AssetType =
   | "residential-property"
   | "commercial-property"
   | "vacant-land"
-  | "cash"
+  | "everyday"
+  | "savings"
   | "term-deposit"
   | "shares"
   | "etf"
@@ -27,5 +29,5 @@ export interface OtherAsset extends AssetBase {
   type: "other";
 }
 
-// Cash/Shares/etc. join this union as their own modules design them (Phase 3+).
-export type Asset = OtherAsset | PropertyAsset;
+// Shares/ETFs/managed funds etc. join this union as their own modules design them (Phase 4+).
+export type Asset = OtherAsset | PropertyAsset | CashAccount;
