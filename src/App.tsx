@@ -2,15 +2,11 @@ import MortgageCalculator from "./components/mortgage/MortgageCalculator";
 
 function App() {
   return (
-    <main
-      style={{
-        maxWidth: "900px",
-        margin: "40px auto",
-        padding: "30px",
-      }}
-    >
-      <h1>Portfolio Manager</h1>
-
+    <main>
+      <header className="app-header">
+        <h1>Portfolio Manager</h1>
+        <span>New Zealand mortgage planner</span>
+      </header>
       <MortgageCalculator />
     </main>
   );
