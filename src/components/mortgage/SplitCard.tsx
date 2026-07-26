@@ -5,6 +5,7 @@ import { ResultCard } from "./ResultCard";
 import type { RecurringPayment, RecurringPaymentInterval } from "../../domain/mortgage/RecurringPayment";
 import type { FixedRateSettings } from "../../domain/mortgage/FixedRateSettings";
 import type { MortgageProductType, RevolvingCreditSettings, RevolvingCreditTransaction } from "../../domain/mortgage/MortgageProduct";
+import { numberFromInput } from "../../domain/shared/numericInput";
 
 interface SplitCardProps {
   split: MortgageSplit;
@@ -37,9 +38,6 @@ const defaultFixedRateSettings: FixedRateSettings = {
 };
 const defaultRevolvingCreditSettings: RevolvingCreditSettings = { creditLimit: 100000, transactions: [] };
 const createRevolvingTransaction = (type: RevolvingCreditTransaction["type"]): RevolvingCreditTransaction => ({ id: crypto.randomUUID(), type, amount: 500, interval: "monthly", startDate: today() });
-const numberFromInput = (previousValue: number, nextValue: string) => Number(
-  previousValue === 0 ? nextValue.replace(/^0+(?=\d)/, "") : nextValue,
-);
 
 export function SplitCard({ split, result, canDelete, canMoveUp, canMoveDown, onChange, onDelete, onDuplicate, onMoveUp, onMoveDown }: SplitCardProps) {
   const payoffDate = result.schedule.at(-1)?.paymentDate;

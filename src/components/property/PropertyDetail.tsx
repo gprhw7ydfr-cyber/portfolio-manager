@@ -2,6 +2,7 @@ import { usePortfolio } from "../../store/usePortfolio";
 import { updateById } from "../../domain/shared/updateById";
 import { createDefaultSplit } from "../../domain/mortgage/createDefaultSplit";
 import { isPropertyAsset } from "../../domain/property/PropertyAsset";
+import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput";
 import { MortgagePanel } from "../mortgage/MortgagePanel";
 import { CapitalImprovementRow } from "./CapitalImprovementRow";
 import type { PropertyAsset, PropertyType, CapitalImprovement } from "../../domain/property/PropertyAsset";
@@ -150,41 +151,48 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
             <span>Purchase price</span>
             <span className="input-row__control">
               <b className="input-row__adornment">$</b>
-              <input type="number" min="0" step="1000" value={property.purchasePrice} onChange={(e) => updateProperty({ purchasePrice: Number(e.target.value) })} />
+              <input type="number" min="0" step="1000" value={property.purchasePrice} onFocus={selectIfZero(property.purchasePrice)} onChange={(e) => updateProperty({ purchasePrice: numberFromInput(property.purchasePrice, e.target.value) })} />
             </span>
           </label>
           <label className="input-row">
             <span>Current value</span>
             <span className="input-row__control">
               <b className="input-row__adornment">$</b>
-              <input type="number" min="0" step="1000" value={property.currentValue} onChange={(e) => updateProperty({ currentValue: Number(e.target.value) })} />
+              <input type="number" min="0" step="1000" value={property.currentValue} onFocus={selectIfZero(property.currentValue)} onChange={(e) => updateProperty({ currentValue: numberFromInput(property.currentValue, e.target.value) })} />
+            </span>
+          </label>
+          <label className="input-row">
+            <span>Capital value</span>
+            <span className="input-row__control">
+              <b className="input-row__adornment">$</b>
+              <input type="number" min="0" step="1000" value={property.capitalValue ?? 0} onFocus={selectIfZero(property.capitalValue ?? 0)} onChange={(e) => updateProperty({ capitalValue: numberFromInput(property.capitalValue ?? 0, e.target.value) })} />
             </span>
           </label>
           <label className="input-row">
             <span>Estimated market value</span>
             <span className="input-row__control">
               <b className="input-row__adornment">$</b>
-              <input type="number" min="0" step="1000" value={property.estimatedMarketValue ?? 0} onChange={(e) => updateProperty({ estimatedMarketValue: Number(e.target.value) })} />
+              <input type="number" min="0" step="1000" value={property.estimatedMarketValue ?? 0} onFocus={selectIfZero(property.estimatedMarketValue ?? 0)} onChange={(e) => updateProperty({ estimatedMarketValue: numberFromInput(property.estimatedMarketValue ?? 0, e.target.value) })} />
             </span>
           </label>
           <label className="input-row">
             <span>Floor area</span>
             <span className="input-row__control">
-              <input type="number" min="0" step="1" value={property.floorArea ?? 0} onChange={(e) => updateProperty({ floorArea: Number(e.target.value) })} />
+              <input type="number" min="0" step="1" value={property.floorArea ?? 0} onFocus={selectIfZero(property.floorArea ?? 0)} onChange={(e) => updateProperty({ floorArea: numberFromInput(property.floorArea ?? 0, e.target.value) })} />
               <span className="input-row__adornment">m&sup2;</span>
             </span>
           </label>
           <label className="input-row">
             <span>Land area</span>
             <span className="input-row__control">
-              <input type="number" min="0" step="1" value={property.landArea ?? 0} onChange={(e) => updateProperty({ landArea: Number(e.target.value) })} />
+              <input type="number" min="0" step="1" value={property.landArea ?? 0} onFocus={selectIfZero(property.landArea ?? 0)} onChange={(e) => updateProperty({ landArea: numberFromInput(property.landArea ?? 0, e.target.value) })} />
               <span className="input-row__adornment">m&sup2;</span>
             </span>
           </label>
           <label className="input-row">
             <span>Construction year</span>
             <span className="input-row__control">
-              <input type="number" min="0" step="1" value={property.constructionYear ?? 0} onChange={(e) => updateProperty({ constructionYear: Number(e.target.value) })} />
+              <input type="number" min="0" step="1" value={property.constructionYear ?? 0} onFocus={selectIfZero(property.constructionYear ?? 0)} onChange={(e) => updateProperty({ constructionYear: numberFromInput(property.constructionYear ?? 0, e.target.value) })} />
             </span>
           </label>
         </div>
@@ -197,7 +205,7 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
             <span>Rent</span>
             <span className="input-row__control">
               <b className="input-row__adornment">$</b>
-              <input type="number" min="0" step="10" value={property.income.rentPerWeek} onChange={(e) => updateProperty({ income: { ...property.income, rentPerWeek: Number(e.target.value) } })} />
+              <input type="number" min="0" step="10" value={property.income.rentPerWeek} onFocus={selectIfZero(property.income.rentPerWeek)} onChange={(e) => updateProperty({ income: { ...property.income, rentPerWeek: numberFromInput(property.income.rentPerWeek, e.target.value) } })} />
               <span className="input-row__adornment">/week</span>
             </span>
           </label>
@@ -205,7 +213,7 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
             <span>Other income</span>
             <span className="input-row__control">
               <b className="input-row__adornment">$</b>
-              <input type="number" min="0" step="100" value={property.income.otherIncomePerYear} onChange={(e) => updateProperty({ income: { ...property.income, otherIncomePerYear: Number(e.target.value) } })} />
+              <input type="number" min="0" step="100" value={property.income.otherIncomePerYear} onFocus={selectIfZero(property.income.otherIncomePerYear)} onChange={(e) => updateProperty({ income: { ...property.income, otherIncomePerYear: numberFromInput(property.income.otherIncomePerYear, e.target.value) } })} />
               <span className="input-row__adornment">/year</span>
             </span>
           </label>
@@ -233,7 +241,8 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
                   min="0"
                   step="100"
                   value={property.expenses[key]}
-                  onChange={(e) => updateProperty({ expenses: { ...property.expenses, [key]: Number(e.target.value) } })}
+                  onFocus={selectIfZero(property.expenses[key])}
+                  onChange={(e) => updateProperty({ expenses: { ...property.expenses, [key]: numberFromInput(property.expenses[key], e.target.value) } })}
                 />
                 <span className="input-row__adornment">/year</span>
               </span>

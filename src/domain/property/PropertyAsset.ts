@@ -29,6 +29,8 @@ export interface CapitalImprovement {
 export interface PropertyAsset extends AssetBase {
   type: PropertyType;
   address: string;
+  /** Council rating/capital value (used for rates) — distinct from currentValue and estimatedMarketValue. */
+  capitalValue?: number;
   estimatedMarketValue?: number;
   floorArea?: number;
   landArea?: number;

@@ -1,4 +1,5 @@
 import type { CapitalImprovement } from "../../domain/property/PropertyAsset";
+import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput";
 
 interface CapitalImprovementRowProps {
   improvement: CapitalImprovement;
@@ -28,7 +29,8 @@ export function CapitalImprovementRow({ improvement, onChange, onDelete }: Capit
             min="0"
             step="500"
             value={improvement.cost}
-            onChange={(event) => onChange({ cost: Number(event.target.value) })}
+            onFocus={selectIfZero(improvement.cost)}
+            onChange={(event) => onChange({ cost: numberFromInput(improvement.cost, event.target.value) })}
           />
         </span>
       </label>
@@ -51,7 +53,8 @@ export function CapitalImprovementRow({ improvement, onChange, onDelete }: Capit
             min="0"
             step="500"
             value={improvement.expectedValueIncrease ?? 0}
-            onChange={(event) => onChange({ expectedValueIncrease: Number(event.target.value) })}
+            onFocus={selectIfZero(improvement.expectedValueIncrease ?? 0)}
+            onChange={(event) => onChange({ expectedValueIncrease: numberFromInput(improvement.expectedValueIncrease ?? 0, event.target.value) })}
           />
         </span>
       </label>
