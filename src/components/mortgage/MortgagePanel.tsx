@@ -5,42 +5,29 @@ import { createDefaultSplit } from "../../domain/mortgage/createDefaultSplit";
 import type { RepaymentFrequency } from "../../domain/mortgage/MortgageInput";
 import type { MortgageSplit } from "../../domain/mortgage/MortgageSplit";
 import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability";
-import { usePortfolio } from "../../store/usePortfolio";
 import { SplitCard } from "./SplitCard";
 import { SummaryCard } from "./SummaryCard";
 
-export default function MortgageCalculator() {
-  const [portfolio, setPortfolio] = usePortfolio();
+interface MortgagePanelProps {
+  mortgage: MortgageLiability;
+  onChange: (changes: Partial<MortgageLiability>) => void;
+  title?: string;
+  subtitle?: string;
+}
 
-  const mortgage = portfolio.liabilities.find(
-    (liability): liability is MortgageLiability => liability.type === "mortgage",
-  );
-
+export function MortgagePanel({
+  mortgage,
+  onChange,
+  title = "Plan your lending, split by split.",
+  subtitle = "Adjust each loan independently and see the combined position below.",
+}: MortgagePanelProps) {
   const result = useMemo(
-    () => (mortgage ? MortgageEngine.simulate(toMortgageInput(mortgage)) : undefined),
+    () => MortgageEngine.simulate(toMortgageInput(mortgage)),
     [mortgage],
   );
 
-  const updateMortgage = (changes: Partial<MortgageLiability>) => {
-    setPortfolio((current) => ({
-      ...current,
-      liabilities: current.liabilities.map((liability) =>
-        liability.type === "mortgage" && liability.id === mortgage?.id
-          ? { ...liability, ...changes }
-          : liability,
-      ),
-    }));
-  };
-
   const updateSplits = (updater: (splits: MortgageSplit[]) => MortgageSplit[]) => {
-    setPortfolio((current) => ({
-      ...current,
-      liabilities: current.liabilities.map((liability) =>
-        liability.type === "mortgage" && liability.id === mortgage?.id
-          ? { ...liability, splits: updater(liability.splits) }
-          : liability,
-      ),
-    }));
+    onChange({ splits: updater(mortgage.splits) });
   };
 
   const updateSplit = (id: string, changes: Partial<MortgageSplit>) => {
@@ -70,24 +57,20 @@ export default function MortgageCalculator() {
     });
   };
 
-  if (!mortgage || !result) {
-    return null;
-  }
-
   return (
     <section className="calculator">
       <div className="calculator__heading">
         <div>
-          <p className="eyebrow">Mortgage portfolio</p>
-          <h2>Plan your lending, split by split.</h2>
-          <p className="muted">Adjust each loan independently and see the combined position below.</p>
+          <p className="eyebrow">{mortgage.name}</p>
+          <h2>{title}</h2>
+          <p className="muted">{subtitle}</p>
         </div>
         <label className="frequency-control">
           <span>Repayment frequency</span>
         <select
           value={mortgage.frequency}
           onChange={(e) =>
-            updateMortgage({ frequency: e.target.value as RepaymentFrequency })
+            onChange({ frequency: e.target.value as RepaymentFrequency })
           }
         >
           <option value="weekly">Weekly</option>

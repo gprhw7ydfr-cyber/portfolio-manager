@@ -1,4 +1,5 @@
 import type { OwnershipStake } from "../shared/Ownership";
+import type { PropertyAsset } from "../property/PropertyAsset";
 
 export type AssetType =
   | "residential-property"
@@ -26,5 +27,5 @@ export interface OtherAsset extends AssetBase {
   type: "other";
 }
 
-// Property/Cash/Shares/etc. join this union as their own modules design them (Phase 2/3).
-export type Asset = OtherAsset;
+// Cash/Shares/etc. join this union as their own modules design them (Phase 3+).
+export type Asset = OtherAsset | PropertyAsset;

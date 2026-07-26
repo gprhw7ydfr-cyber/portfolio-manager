@@ -38,11 +38,15 @@ Generalise the mortgage-only domain into the shape everything else builds on. Th
 
 `MortgageCalculator` now reads/writes through `usePortfolio()` instead of local `useState`, via a `toMortgageInput` adapter — `SimulationRunner`/`MortgageEngine` needed zero changes. Verified: build/lint clean, no visible regression in the UI, and edits now survive a page reload.
 
-## Phase 2 — Property Management
+## Phase 2 — Property Management (done)
 
-- Property CRUD: general info, ownership, income (rent, other), expenses (rates, insurance, maintenance, body corp, PM, utilities, other), capital improvements, document metadata
-- Attach existing mortgages/splits to a property
-- Replace the single-calculator screen with a property list/portfolio view
+- **`PropertyAsset`** (`src/domain/property/PropertyAsset.ts`) joins the `Asset` union — general info, ownership (inherited from `AssetBase`), income (rent, other), expenses (rates, insurance, maintenance, body corp, PM, utilities, other — simple numeric fields, not a recurring-payment engine; that's Phase 3's job), and `capitalImprovements: CapitalImprovement[]` with full CRUD
+- **Mortgages attach to a property by reference**: `MortgageLiability.propertyId?: string`, optional so unattached mortgages (like the Phase 1 seed) keep working with no forced migration
+- **`MortgageCalculator` became `MortgagePanel`**, a presentational `{ mortgage, onChange }` component reused both inside a property's detail view and in a home-screen "Other mortgages" section for anything unattached — zero changes to `SimulationRunner`/`MortgageEngine`
+- **New home screen**: `PropertyList` (property cards + "Other mortgages") and `PropertyDetail`, navigated via simple in-app view state in `App.tsx` (no router — not needed for a single-user offline app yet)
+- **Deferred**: Documents/photos (Vision §4) — real file storage needs IndexedDB, a meaningfully different capability than anything built so far; revisit in a later phase
+
+Verified: build/lint clean, no regression against the Phase 0/1 baseline, and a property + capital improvement + mortgage attachment all survive a page reload.
 
 ## Phase 3 — Cash Flow & Savings
 

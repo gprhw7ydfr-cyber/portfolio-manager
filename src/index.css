@@ -89,6 +89,22 @@ select { border: 1px solid #d5e1da; border-radius: 9px; padding: 10px 32px 10px 
 .inline-control b { padding-left: 8px; color: #6d7f77; }
 .inline-control input { border: 0; outline: 0; }
 .payment-rule__delete { align-self: end; color: #ad4b43; }
-@media (max-width: 720px) { main { padding: 25px 16px 40px; } .app-header, .calculator__heading, .split-card__header { align-items: start; flex-direction: column; } .split-card__actions { justify-content: start; } .split-card__body { grid-template-columns: 1fr; } .frequency-control { width: 100%; } select { width: 100%; } }
+.property-list-page { display: grid; gap: 40px; }
+.property-grid-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+.property-card { display: grid; gap: 4px; text-align: left; border: 1px solid #dce7e0; border-radius: 16px; background: #fff; box-shadow: 0 4px 16px rgba(32, 69, 49, .035); padding: 18px 20px; }
+.property-card:hover { border-color: #bcdcc9; background: #f9fcfa; }
+.property-card__type { text-transform: uppercase; letter-spacing: .1em; font-size: .68rem; font-weight: 750; color: #55806f; }
+.property-card h3 { margin: 2px 0 0; font-size: 1.1rem; }
+.property-card__value { margin-top: 8px; font-size: 1.2rem; letter-spacing: -.025em; }
+.other-mortgages { border-top: 1px solid #eaf0ec; padding-top: 32px; }
+.property-detail { display: grid; gap: 22px; }
+.property-detail__heading { display: flex; justify-content: space-between; gap: 24px; align-items: end; }
+.property-section { border: 1px solid #dce7e0; border-radius: 16px; background: #fff; box-shadow: 0 4px 16px rgba(32, 69, 49, .035); padding: 20px 21px; display: grid; gap: 14px; }
+.property-section h4 { margin: 0; font-size: .95rem; }
+.property-section__heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.property-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.property-mortgage-picker { display: grid; gap: 12px; }
+.property-mortgage-picker__actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+@media (max-width: 720px) { main { padding: 25px 16px 40px; } .app-header, .calculator__heading, .split-card__header, .property-detail__heading { align-items: start; flex-direction: column; } .split-card__actions { justify-content: start; } .split-card__body { grid-template-columns: 1fr; } .frequency-control { width: 100%; } select { width: 100%; } }
 @media (max-width: 720px) { .payment-rule { grid-template-columns: 1fr 1fr; } .payment-rule strong { grid-column: 1 / -1; padding: 0; } .payment-rule__delete { grid-column: 2; justify-self: end; } }
-@media (max-width: 500px) { .split-results, .summary-card__results, .payment-rule, .rate-settings { grid-template-columns: 1fr; } .input-row { grid-template-columns: 1fr; gap: 4px; } .split-card__header, .split-card__body, .summary-card, .payment-plan, .rate-plan, .product-plan { padding: 16px; } .payment-plan__heading, .rate-plan__heading, .product-plan__heading, .product-settings { align-items: start; flex-direction: column; } .payment-rule__delete { grid-column: 1; justify-self: end; } }
+@media (max-width: 500px) { .split-results, .summary-card__results, .payment-rule, .rate-settings, .property-grid { grid-template-columns: 1fr; } .input-row { grid-template-columns: 1fr; gap: 4px; } .split-card__header, .split-card__body, .summary-card, .payment-plan, .rate-plan, .product-plan, .property-section { padding: 16px; } .payment-plan__heading, .rate-plan__heading, .product-plan__heading, .product-settings, .property-section__heading { align-items: start; flex-direction: column; } .payment-rule__delete { grid-column: 1; justify-self: end; } }

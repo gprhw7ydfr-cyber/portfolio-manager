@@ -8,6 +8,8 @@ import type { MortgageSplit } from "./MortgageSplit";
 export interface MortgageLiability extends LiabilityBase {
   type: "mortgage";
   lender?: string;
+  /** The PropertyAsset this mortgage is secured against, if any. Optional: mortgages can exist unattached. */
+  propertyId?: string;
   frequency: RepaymentFrequency;
   startDate: string;
   splits: MortgageSplit[];
