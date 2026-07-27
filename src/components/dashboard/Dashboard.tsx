@@ -41,7 +41,7 @@ export function Dashboard() {
           <ResultCard label="Total interest paid" value={formatMoney(stats.totalInterestPaid)} supportingText="To date" />
           <ResultCard label="Forecast interest remaining" value={formatMoney(stats.forecastInterestRemaining)} />
           <ResultCard label="Portfolio return" value={percent(stats.portfolioReturn)} supportingText="Gross rental yield" />
-          <ResultCard label="Passive income" value={formatMoney(stats.passiveIncomeAnnual)} supportingText="Per year, excluding salary" />
+          <ResultCard label="Passive income" value={formatMoney(stats.passiveIncomeAnnual)} supportingText="Property income per year" />
         </div>
       </section>
 

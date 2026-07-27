@@ -17,8 +17,7 @@ export function loadPortfolio(): Portfolio | undefined {
   try {
     const stored = JSON.parse(raw) as StoredPortfolio;
     if (stored.schemaVersion !== SCHEMA_VERSION) return undefined;
-    // Defaults fields added to Portfolio after some users already had data on disk.
-    return { ...stored.portfolio, cashFlowItems: stored.portfolio.cashFlowItems ?? [] };
+    return stored.portfolio;
   } catch {
     return undefined;
   }

@@ -1,5 +1,4 @@
 import type { Portfolio } from "../portfolio/Portfolio";
-import type { CashFlowFrequency } from "./CashFlowItem";
 import type { RepaymentFrequency } from "../mortgage/MortgageInput";
 import { isPropertyAsset } from "../property/PropertyAsset";
 import { toMortgageInput } from "../mortgage/toMortgageInput";
@@ -18,11 +17,10 @@ export interface CashFlowSummary {
   net: CashFlowRow;
 }
 
-export const PERIODS_PER_YEAR: Record<CashFlowFrequency | RepaymentFrequency, number> = {
+export const PERIODS_PER_YEAR: Record<RepaymentFrequency, number> = {
   weekly: 52,
   fortnightly: 26,
   monthly: 12,
-  annually: 1,
 };
 
 function toRow(annualAmount: number): CashFlowRow {
@@ -34,18 +32,12 @@ function toRow(annualAmount: number): CashFlowRow {
   };
 }
 
-/** Annualises every income/expense source onto one common figure — CashFlowItems, property
- *  income/expenses, and mortgage repayments (via the real engine, not a manually-entered
- *  duplicate) — then derives weekly/fortnightly/monthly/annual rows from it. */
+/** Scoped to the property portfolio only — property income/expenses and mortgage repayments
+ *  (via the real engine, not a manually-entered duplicate). Deliberately excludes anything not
+ *  tied to a property (salary, personal expenses, outside investments) by design. */
 export function calculateCashFlow(portfolio: Portfolio): CashFlowSummary {
   let incomeAnnual = 0;
   let expensesAnnual = 0;
-
-  for (const item of portfolio.cashFlowItems) {
-    const annual = item.amount * PERIODS_PER_YEAR[item.frequency];
-    if (item.kind === "income") incomeAnnual += annual;
-    else expensesAnnual += annual;
-  }
 
   for (const asset of portfolio.assets) {
     if (!isPropertyAsset(asset)) continue;

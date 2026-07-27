@@ -24,6 +24,7 @@ export interface DashboardStats {
   forecastInterestRemaining: number;
   /** Gross rental yield: annualised property net operating income / total property value. */
   portfolioReturn: number;
+  /** Gross property income (rent + other) — scoped to the property portfolio, not household income. */
   passiveIncomeAnnual: number;
 }
 
@@ -94,10 +95,7 @@ export function calculateDashboardStats(portfolio: Portfolio, asOf: Date = new D
   }
   const portfolioReturn = totalPropertyValue > 0 ? propertyNetOperatingIncomeAnnual / totalPropertyValue : 0;
 
-  const nonSalaryIncomeAnnual = portfolio.cashFlowItems
-    .filter((item) => item.kind === "income" && item.category !== "salary")
-    .reduce((sum, item) => sum + item.amount * PERIODS_PER_YEAR[item.frequency], 0);
-  const passiveIncomeAnnual = propertyIncomeAnnual + nonSalaryIncomeAnnual;
+  const passiveIncomeAnnual = propertyIncomeAnnual;
 
   return {
     netWorth,

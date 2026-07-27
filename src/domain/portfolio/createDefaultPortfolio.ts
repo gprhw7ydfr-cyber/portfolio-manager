@@ -11,7 +11,6 @@ export function createDefaultPortfolio(): Portfolio {
       { id: ownerId, name: "You", type: "individual" },
     ],
     assets: [],
-    cashFlowItems: [],
     liabilities: [
       {
         id: crypto.randomUUID(),

@@ -107,9 +107,6 @@ select { border: 1px solid #d5e1da; border-radius: 9px; padding: 10px 32px 10px 
 .offset-linked { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: #355c4d; font-size: .84rem; }
 .offset-linked span:first-child { color: #697a72; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 .offset-linked strong { font-size: .95rem; }
-.cash-flow-rule { display: grid; grid-template-columns: 1.2fr .9fr 1fr 1fr 1fr 28px; gap: 10px; align-items: end; padding: 11px; border: 1px solid #e0e9e3; border-radius: 9px; background: #fff; }
-.cash-flow-rule label { display: grid; gap: 5px; color: #697a72; font-size: .68rem; font-weight: 700; }
-.cash-flow-rule input, .cash-flow-rule select { width: 100%; min-height: 34px; padding: 6px 8px; border: 1px solid #d5e1da; border-radius: 7px; background: #fff; color: #172b25; }
 .cash-flow-summary { margin-top: 6px; }
 .cash-flow-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
 .cash-flow-table th, .cash-flow-table td { padding: 9px 10px; text-align: right; }
@@ -141,5 +138,5 @@ select { border: 1px solid #d5e1da; border-radius: 9px; padding: 10px 32px 10px 
 .chart-tooltip strong { font-size: .95rem; }
 .chart-tooltip span { color: #cfe3d7; }
 @media (max-width: 720px) { main { padding: 25px 16px 40px; } .app-header, .calculator__heading, .split-card__header, .property-detail__heading { align-items: start; flex-direction: column; } .split-card__actions { justify-content: start; } .split-card__body { grid-template-columns: 1fr; } .frequency-control { width: 100%; } select { width: 100%; } }
-@media (max-width: 720px) { .payment-rule { grid-template-columns: 1fr 1fr; } .payment-rule strong { grid-column: 1 / -1; padding: 0; } .payment-rule__delete { grid-column: 2; justify-self: end; } .cash-flow-rule { grid-template-columns: 1fr 1fr; } .cash-flow-rule button { grid-column: 2; justify-self: end; } }
+@media (max-width: 720px) { .payment-rule { grid-template-columns: 1fr 1fr; } .payment-rule strong { grid-column: 1 / -1; padding: 0; } .payment-rule__delete { grid-column: 2; justify-self: end; } }
 @media (max-width: 500px) { .split-results, .summary-card__results, .payment-rule, .rate-settings, .property-grid, .cash-account-body { grid-template-columns: 1fr; } .input-row { grid-template-columns: 1fr; gap: 4px; } .split-card__header, .split-card__body, .summary-card, .payment-plan, .rate-plan, .product-plan, .property-section { padding: 16px; } .payment-plan__heading, .rate-plan__heading, .product-plan__heading, .product-settings, .property-section__heading { align-items: start; flex-direction: column; } .payment-rule__delete { grid-column: 1; justify-self: end; } .cash-flow-table { font-size: .78rem; } .cash-flow-table th, .cash-flow-table td { padding: 7px 6px; } .main-nav { width: 100%; } .main-nav__link { flex: 1; } }

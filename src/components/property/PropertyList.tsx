@@ -8,25 +8,14 @@ import { createDefaultCashAccount } from "../../domain/cash/createDefaultCashAcc
 import { calculateCashFlow } from "../../domain/cashflow/calculateCashFlow";
 import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability";
 import type { CashAccount } from "../../domain/cash/CashAccount";
-import type { CashFlowItem } from "../../domain/cashflow/CashFlowItem";
 import { PropertyCard } from "./PropertyCard";
 import { MortgagePanel } from "../mortgage/MortgagePanel";
 import { CashAccountCard } from "../cash/CashAccountCard";
-import { CashFlowItemRow } from "../cashflow/CashFlowItemRow";
 import { CashFlowSummaryCard } from "../cashflow/CashFlowSummaryCard";
 
 interface PropertyListProps {
   onSelectProperty: (id: string) => void;
 }
-
-const createDefaultCashFlowItem = (kind: CashFlowItem["kind"]): CashFlowItem => ({
-  id: crypto.randomUUID(),
-  name: kind === "income" ? "Salary" : "Living costs",
-  kind,
-  category: kind === "income" ? "salary" : "living-costs",
-  amount: 0,
-  frequency: "fortnightly",
-});
 
 export function PropertyList({ onSelectProperty }: PropertyListProps) {
   const [portfolio, setPortfolio] = usePortfolio();
@@ -66,18 +55,6 @@ export function PropertyList({ onSelectProperty }: PropertyListProps) {
 
   const deleteCashAccount = (id: string) => {
     setPortfolio((current) => ({ ...current, assets: current.assets.filter((asset) => asset.id !== id) }));
-  };
-
-  const addCashFlowItem = (kind: CashFlowItem["kind"]) => {
-    setPortfolio((current) => ({ ...current, cashFlowItems: [...current.cashFlowItems, createDefaultCashFlowItem(kind)] }));
-  };
-
-  const updateCashFlowItem = (id: string, changes: Partial<CashFlowItem>) => {
-    setPortfolio((current) => ({ ...current, cashFlowItems: updateById(current.cashFlowItems, id, changes) }));
-  };
-
-  const deleteCashFlowItem = (id: string) => {
-    setPortfolio((current) => ({ ...current, cashFlowItems: current.cashFlowItems.filter((item) => item.id !== id) }));
   };
 
   return (
@@ -158,30 +135,10 @@ export function PropertyList({ onSelectProperty }: PropertyListProps) {
         <div className="calculator__heading">
           <div>
             <p className="eyebrow">Cash flow</p>
-            <h2>Income &amp; expenses.</h2>
-            <p className="muted">Items outside a property — salary, dividends, interest, insurance, living costs, tax, and more.</p>
-          </div>
-          <div className="payment-plan__buttons">
-            <button className="text-button" onClick={() => addCashFlowItem("income")}>+ Income</button>
-            <button className="text-button" onClick={() => addCashFlowItem("expense")}>+ Expense</button>
+            <h2>Your property portfolio's cash flow.</h2>
+            <p className="muted">Rent and expenses across every property, plus mortgage repayments.</p>
           </div>
         </div>
-
-        {portfolio.cashFlowItems.length === 0 ? (
-          <p className="payment-plan__empty">No income or expense items recorded.</p>
-        ) : (
-          <div className="payment-rules">
-            {portfolio.cashFlowItems.map((item) => (
-              <CashFlowItemRow
-                key={item.id}
-                item={item}
-                onChange={(changes) => updateCashFlowItem(item.id, changes)}
-                onDelete={() => deleteCashFlowItem(item.id)}
-              />
-            ))}
-          </div>
-        )}
-
         <CashFlowSummaryCard summary={cashFlowSummary} />
       </section>
     </div>
