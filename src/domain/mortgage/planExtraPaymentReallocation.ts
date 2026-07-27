@@ -17,12 +17,25 @@ export interface ReallocationDestination {
   name: string;
 }
 
+/** Decomposes a split regime's own valueCreated into what it accounts for directly vs. what
+ *  redistribution transfers with the other splits account for — same technique as
+ *  `recommendExtraPayment`'s `RedistributionBreakdown`, applied per regime instead of per
+ *  candidate. Never present for savings regimes — they're untouched by redistribution. */
+export interface RegimeRedistributionBreakdown {
+  directValueCreated: number;
+  redistributionValueCreated: number;
+}
+
 export interface ReallocationRegime {
   destination: ReallocationDestination;
   startDate: Date;
   /** Undefined = this regime runs to the end of the plan. */
   endDate?: Date;
   reason: ReallocationTriggerReason;
+  /** This regime's own contribution — interest saved (split) or interest earned (savings),
+   *  bounded to its own window, the same figure used to choose it over the other candidates. */
+  valueCreated: number;
+  redistributionBreakdown?: RegimeRedistributionBreakdown;
 }
 
 export interface SavingsContribution {
@@ -182,6 +195,13 @@ export function planExtraPaymentReallocation(
   const mortgageStartDate = new Date(`${mortgage.startDate}T00:00:00`);
   const planHorizon = new Date(Math.max(...mortgage.splits.map((split) => addMonths(mortgageStartDate, split.years * 12).getTime())));
 
+  // Redistribution is mortgage-wide, same as recommendExtraPayment.ts — isolating it for a
+  // per-regime breakdown means stripping it everywhere, not just from the regime's own split.
+  const hasRedistribution = mortgage.splits.some((split) => split.refixBalanceTarget !== undefined);
+  const noRedistributionMortgage: MortgageLiability = hasRedistribution
+    ? { ...mortgage, splits: mortgage.splits.map((split) => ({ ...split, refixBalanceTarget: undefined })) }
+    : mortgage;
+
   const committed = new Map<string, RecurringPayment[]>();
   const regimes: ReallocationRegime[] = [];
   const savingsByAccount = new Map<string, SavingsContribution>();
@@ -233,7 +253,19 @@ export function planExtraPaymentReallocation(
     const triggerDates = [best.payoffDate, nextRefixDate].filter((date): date is Date => date !== undefined && date > currentStart);
     const regimeEnd = triggerDates.length > 0 ? new Date(Math.min(...triggerDates.map((date) => date.getTime()))) : undefined;
 
-    regimes.push({ destination: best.destination, startDate: currentStart, endDate: regimeEnd, reason });
+    // Only re-run the isolation for the winning candidate, not every candidate evaluated — keeps
+    // the extra cost proportional to the plan's own length, not the number of splits considered.
+    let redistributionBreakdown: RegimeRedistributionBreakdown | undefined;
+    if (hasRedistribution && best.destination.type === "split") {
+      const noRedistNoFurtherMortgage = buildTestMortgage(noRedistributionMortgage, committed, testAmount, interval);
+      const noRedistNoFurtherResult = MortgageEngine.simulate(toMortgageInput(noRedistNoFurtherMortgage, assets));
+      const noRedistTestMortgage = buildTestMortgage(noRedistributionMortgage, committed, testAmount, interval, { splitId: best.destination.id, startDate: currentStart, endDate: windowEnd });
+      const noRedistTestResult = MortgageEngine.simulate(toMortgageInput(noRedistTestMortgage, assets));
+      const directValueCreated = noRedistNoFurtherResult.totalInterest - noRedistTestResult.totalInterest;
+      redistributionBreakdown = { directValueCreated, redistributionValueCreated: best.valueCreated - directValueCreated };
+    }
+
+    regimes.push({ destination: best.destination, startDate: currentStart, endDate: regimeEnd, reason, valueCreated: best.valueCreated, redistributionBreakdown });
 
     if (best.destination.type === "split") {
       const payments = committed.get(best.destination.id) ?? [];

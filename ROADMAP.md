@@ -152,6 +152,16 @@ Follow-up to the redistribution diagnosis: the user asked to change how a redist
 
 Verified: `tsc`/`eslint` clean. Engine-level: `directInterestSaved + redistributionInterestSaved` sums back to `interestSaved` exactly for every option in the reproduction mortgage; a mortgage with no `refixBalanceTarget` anywhere produces no breakdown field. Browser: selected each split in the advisor and confirmed the breakdown block's figures are correct and additive, and that the "Total" row now matches the main table exactly; console clean throughout.
 
+## Reallocation planner: same direct vs. redistribution-driven breakdown (done)
+
+Follow-up request to extend the breakdown above to the reallocation planner, whose timeline previously showed only a destination and dates — no value at all, let alone where it came from.
+
+- **`planExtraPaymentReallocation`** (`src/domain/mortgage/planExtraPaymentReallocation.ts`): each `ReallocationRegime` now stores its own `valueCreated` (already computed to pick the winner each iteration, previously discarded) and, for split regimes when the mortgage has redistribution configured anywhere, a `redistributionBreakdown` — same isolation technique as the single-point advisor, re-run only for the *winning* candidate each iteration (not every candidate considered), so the extra cost stays proportional to the plan's own length rather than the number of splits. Savings regimes never get a breakdown — they're untouched by redistribution by construction.
+- **UI** (`src/components/mortgage/ReallocationPlanPanel.tsx`): each timeline entry now shows its own value and, where relevant, an inline direct/redistribution note; a derived "of which direct / of which redistribution" line sits under the existing "Total value created" card, summing the per-regime figures.
+- **The derived total turned out to be exact, not approximate** — the plan's own methodology telescopes: each regime's `valueCreated` is a marginal comparison against the state just before it, so summing them across the whole chained plan lands on precisely the same figure as the single whole-plan `totalValueCreated` calculation. Confirmed in the browser to the dollar ($243,989 direct + −$145,049 redistribution = $98,940, matching `totalValueCreated` exactly) — flagged as a mere approximation risk in the plan going in, turned out not to be one.
+
+Verified: `tsc`/`eslint` clean. Engine-level: every split regime's `directValueCreated + redistributionValueCreated` sums back to that regime's own `valueCreated` exactly across the reproduction mortgage's full 5-regime plan; savings regimes carry no breakdown; a mortgage with no redistribution anywhere produces no breakdown fields, unchanged from before. Browser: ran the reallocation plan against the reproduction mortgage, confirmed each regime's value and breakdown render correctly and the derived total line matches the true total exactly; console clean throughout.
+
 ## Phase 8 — UI Polish & Developer Mode
 
 Light/dark mode, drag-and-drop dashboard widgets, keyboard shortcuts, search/filter, print-friendly reports. Developer Mode exposing calculation internals (formulas, daily balances, amortisation breakdown) for auditing — worth threading through earlier phases incrementally rather than bolting on at the end.

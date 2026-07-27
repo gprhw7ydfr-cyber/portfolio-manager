@@ -77,6 +77,12 @@ export function ReallocationPlanPanel({ mortgage, assets, testAmount, interval }
                 <strong>From {formatDate(regime.startDate)}</strong> ({index === 0 ? REASON_LABEL.initial : REASON_LABEL[regime.reason]}):{" "}
                 {regime.destination.type === "split" ? `pay down ${regime.destination.name}` : `contribute to ${regime.destination.name}`}
                 {regime.endDate && ` — until ${formatDate(regime.endDate)}`}
+                {" · "}{formatMoney(regime.valueCreated)} created
+                {regime.redistributionBreakdown && (
+                  <div className="reallocation-timeline__breakdown">
+                    direct {formatMoney(regime.redistributionBreakdown.directValueCreated)}, redistribution {formatMoney(regime.redistributionBreakdown.redistributionValueCreated)}
+                  </div>
+                )}
               </li>
             ))}
           </ol>
@@ -88,6 +94,16 @@ export function ReallocationPlanPanel({ mortgage, assets, testAmount, interval }
               <small>Mortgage interest saved plus any savings interest earned</small>
             </div>
           </div>
+
+          {plan.regimes.some((regime) => regime.redistributionBreakdown) && (() => {
+            const totalDirect = plan.regimes.reduce((sum, regime) => sum + (regime.redistributionBreakdown?.directValueCreated ?? regime.valueCreated), 0);
+            const totalRedistribution = plan.regimes.reduce((sum, regime) => sum + (regime.redistributionBreakdown?.redistributionValueCreated ?? 0), 0);
+            return (
+              <p className="muted reallocation-plan__total-breakdown">
+                Of which: {formatMoney(totalDirect)} direct, {formatMoney(totalRedistribution)} from redistribution (sum of each regime above)
+              </p>
+            );
+          })()}
 
           {plan.savingsContributions.length > 0 && (
             <table className="cash-flow-table">
