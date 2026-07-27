@@ -6,7 +6,6 @@ import { isCashAccount } from "../cash/CashAccount";
 import { toMortgageInput } from "./toMortgageInput";
 import { MortgageEngine } from "../../engines/MortgageEngine";
 import { combineSchedules } from "./amortizationDetail";
-import { currentBalanceAsOf } from "./scheduleAsOf";
 
 export type ReallocationInterval = Extract<RecurringPaymentInterval, "weekly" | "monthly">;
 export type ReallocationDestinationType = "split" | "savings";
@@ -72,6 +71,48 @@ function findEarliestRateChange(schedules: AmortizationPayment[][], after: Date)
     })
     .filter((date): date is Date => date !== undefined);
   return dates.length > 0 ? new Date(Math.min(...dates.map((date) => date.getTime()))) : undefined;
+}
+
+/** Scans for the next point a split's balance jumps outside the normal amortisation math — i.e.
+ *  the opening balance of one payment doesn't match the previous payment's closing balance. A
+ *  refix-triggered redistribution transfer causes exactly this, even when (as is common) the
+ *  assumed refix rate happens to equal the current rate and so produces no rate change at all —
+ *  this is what `findEarliestRateChange` alone misses. General and cause-agnostic: it doesn't
+ *  need to know *why* the balance moved, just that it did. */
+function findEarliestBalanceDiscontinuity(schedules: AmortizationPayment[][], after: Date): Date | undefined {
+  const dates = schedules
+    .map((schedule) => {
+      for (let index = 1; index < schedule.length; index += 1) {
+        if (schedule[index].paymentDate > after && Math.abs(schedule[index].openingBalance - schedule[index - 1].closingBalance) > 0.01) {
+          return schedule[index].paymentDate;
+        }
+      }
+      return undefined;
+    })
+    .filter((date): date is Date => date !== undefined);
+  return dates.length > 0 ? new Date(Math.min(...dates.map((date) => date.getTime()))) : undefined;
+}
+
+/** The next point anything schedule-worthy happens to this mortgage — a rate change or a
+ *  redistribution transfer, whichever comes first. */
+function findNextTrigger(schedules: AmortizationPayment[][], after: Date): Date | undefined {
+  const candidates = [findEarliestRateChange(schedules, after), findEarliestBalanceDiscontinuity(schedules, after)]
+    .filter((date): date is Date => date !== undefined);
+  return candidates.length > 0 ? new Date(Math.min(...candidates.map((date) => date.getTime()))) : undefined;
+}
+
+/** Whether a split's balance has already reached zero as of `asOf`. Deliberately stricter than
+ *  `scheduleAsOf.ts`'s `currentBalanceAsOf` (which answers "balance before today's payment is
+ *  applied," so it still reports a positive number at the exact instant a loan clears — that
+ *  clearing happens ON that payment's date, not before it). A regime boundary here is always set
+ *  to exactly a split's own payoff date, so the next iteration needs the inclusive answer:
+ *  "is it done as of, and including, this date" — otherwise a fully paid-off split looks eligible
+ *  for one more (harmless but confusing) phantom regime. */
+function isFullyPaidOff(schedule: AmortizationPayment[], asOf: Date): boolean {
+  for (let index = schedule.length - 1; index >= 0; index -= 1) {
+    if (schedule[index].paymentDate <= asOf) return schedule[index].closingBalance <= 0;
+  }
+  return false;
 }
 
 /** Future value of a recurring contribution compounding at `annualRatePercent`, period by period —
@@ -154,7 +195,7 @@ export function planExtraPaymentReallocation(
 
     const noFurtherMortgage = buildTestMortgage(mortgage, committed, testAmount, interval);
     const noFurtherResult = MortgageEngine.simulate(toMortgageInput(noFurtherMortgage, assets));
-    const nextRefixDate = findEarliestRateChange(noFurtherResult.splits.map((split) => split.schedule), currentStart);
+    const nextRefixDate = findNextTrigger(noFurtherResult.splits.map((split) => split.schedule), currentStart);
     // Every candidate is evaluated over the SAME bounded window — up to the next mortgage-wide
     // trigger, not "permanently" — otherwise a savings account (which never pays off and so gets
     // credited with growth all the way to the plan horizon) would be unfairly favoured over a
@@ -167,7 +208,7 @@ export function planExtraPaymentReallocation(
     mortgage.splits.forEach((split, index) => {
       if (split.productType === "revolving-credit") return;
       const schedule = noFurtherResult.splits[index]?.schedule ?? [];
-      if (currentBalanceAsOf(schedule, currentStart) <= 0) return;
+      if (isFullyPaidOff(schedule, currentStart)) return;
 
       const testMortgage = buildTestMortgage(mortgage, committed, testAmount, interval, { splitId: split.id, startDate: currentStart, endDate: windowEnd });
       const testResult = MortgageEngine.simulate(toMortgageInput(testMortgage, assets));
