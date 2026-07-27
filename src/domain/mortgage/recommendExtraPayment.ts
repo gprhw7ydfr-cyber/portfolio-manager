@@ -8,6 +8,16 @@ import { findPaymentIndexAsOf, currentBalanceAsOf } from "./scheduleAsOf";
 
 export type ExtraPaymentMode = "lump-sum" | "weekly" | "monthly";
 
+/** Decomposes interestSaved into what this split's own extra payment accounts for directly, vs.
+ *  what redistribution transfers with the other splits account for — present only when the
+ *  mortgage has any refixBalanceTarget configured. The two always sum back to interestSaved. */
+export interface RedistributionBreakdown {
+  directInterestSaved: number;
+  redistributionInterestSaved: number;
+  directPayoffDateBaseline?: Date;
+  directPayoffDateWithExtraPayment?: Date;
+}
+
 export interface ExtraPaymentOption {
   splitId: string;
   splitName: string;
@@ -18,6 +28,7 @@ export interface ExtraPaymentOption {
   withExtraPaymentSchedule: AmortizationPayment[];
   payoffDateBaseline?: Date;
   payoffDateWithExtraPayment?: Date;
+  redistributionBreakdown?: RedistributionBreakdown;
 }
 
 export interface ExtraPaymentAnalysis {
@@ -76,6 +87,17 @@ export function recommendExtraPayment(
   const baseline = MortgageEngine.simulate(toMortgageInput(mortgage, assets));
   const options: ExtraPaymentOption[] = [];
 
+  // Redistribution is mortgage-wide — a candidate that has no target of its own can still be
+  // indirectly affected by paying it down changing what's available to redistribute among the
+  // splits that do, so isolation strips refixBalanceTarget everywhere, not just on the candidate.
+  const hasRedistribution = mortgage.splits.some((split) => split.refixBalanceTarget !== undefined);
+  const noRedistributionMortgage: MortgageLiability = hasRedistribution
+    ? { ...mortgage, splits: mortgage.splits.map((split) => ({ ...split, refixBalanceTarget: undefined })) }
+    : mortgage;
+  const noRedistributionBaseline = hasRedistribution
+    ? MortgageEngine.simulate(toMortgageInput(noRedistributionMortgage, assets))
+    : undefined;
+
   mortgage.splits.forEach((split, index) => {
     if (split.productType === "revolving-credit") return;
 
@@ -85,15 +107,33 @@ export function recommendExtraPayment(
     const testMortgage = buildExtraPaymentTestMortgage(mortgage, split.id, testAmount, mode, asOf, baselineSchedule);
     const testResult = MortgageEngine.simulate(toMortgageInput(testMortgage, assets));
     const withExtraPaymentSchedule = testResult.splits[index]?.schedule ?? [];
+    const interestSaved = baseline.totalInterest - testResult.totalInterest;
+
+    let redistributionBreakdown: RedistributionBreakdown | undefined;
+    if (noRedistributionBaseline) {
+      const noRedistributionBaselineSchedule = noRedistributionBaseline.splits[index]?.schedule ?? [];
+      const noRedistributionTestMortgage = buildExtraPaymentTestMortgage(noRedistributionMortgage, split.id, testAmount, mode, asOf, noRedistributionBaselineSchedule);
+      const noRedistributionTestResult = MortgageEngine.simulate(toMortgageInput(noRedistributionTestMortgage, assets));
+      const noRedistributionTestSchedule = noRedistributionTestResult.splits[index]?.schedule ?? [];
+      const directInterestSaved = noRedistributionBaseline.totalInterest - noRedistributionTestResult.totalInterest;
+
+      redistributionBreakdown = {
+        directInterestSaved,
+        redistributionInterestSaved: interestSaved - directInterestSaved,
+        directPayoffDateBaseline: noRedistributionBaselineSchedule.at(-1)?.paymentDate,
+        directPayoffDateWithExtraPayment: noRedistributionTestSchedule.at(-1)?.paymentDate,
+      };
+    }
 
     options.push({
       splitId: split.id,
       splitName: split.name,
-      interestSaved: baseline.totalInterest - testResult.totalInterest,
+      interestSaved,
       baselineSchedule,
       withExtraPaymentSchedule,
       payoffDateBaseline: baselineSchedule.at(-1)?.paymentDate,
       payoffDateWithExtraPayment: withExtraPaymentSchedule.at(-1)?.paymentDate,
+      redistributionBreakdown,
     });
   });
 

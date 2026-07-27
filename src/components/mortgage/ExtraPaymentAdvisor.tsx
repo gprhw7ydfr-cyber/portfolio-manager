@@ -26,15 +26,25 @@ const MODE_OPTIONS: { value: ExtraPaymentMode; label: string; adornment: string 
   { value: "monthly", label: "Monthly extra payment", adornment: "/month" },
 ];
 
+function monthsBetween(from: Date, to: Date): number {
+  return (from.getFullYear() - to.getFullYear()) * 12 + (from.getMonth() - to.getMonth());
+}
+
+function formatMonths(months: number): string {
+  const sign = months < 0 ? "-" : "";
+  const magnitude = Math.abs(months);
+  const years = Math.floor(magnitude / 12);
+  const remainingMonths = magnitude % 12;
+  if (years === 0 && remainingMonths === 0) return "0 mo";
+  if (years === 0) return `${sign}${remainingMonths} mo`;
+  if (remainingMonths === 0) return `${sign}${years} yr`;
+  return `${sign}${years} yr ${remainingMonths} mo`;
+}
+
 function formatTimeSaved(baseline?: Date, withExtra?: Date): string {
   if (!baseline || !withExtra) return "—";
-  const months = (baseline.getFullYear() - withExtra.getFullYear()) * 12 + (baseline.getMonth() - withExtra.getMonth());
-  if (months <= 0) return "—";
-  const years = Math.floor(months / 12);
-  const remainingMonths = months % 12;
-  if (years === 0) return `${remainingMonths} mo`;
-  if (remainingMonths === 0) return `${years} yr`;
-  return `${years} yr ${remainingMonths} mo`;
+  const months = monthsBetween(baseline, withExtra);
+  return months <= 0 ? "—" : formatMonths(months);
 }
 
 /** Extends a series out to `throughYear` so a split that pays off early doesn't just stop mid-chart —
@@ -133,13 +143,57 @@ export function ExtraPaymentAdvisor({ mortgage, assets }: ExtraPaymentAdvisorPro
               className={`extra-payment-advisor__row${selected?.splitId === option.splitId ? " extra-payment-advisor__row--selected" : ""}${index === 0 ? " cash-flow-table__net" : ""}`}
               onClick={() => setSelectedSplitId(option.splitId)}
             >
-              <th>{option.splitName}{index === 0 ? " — Recommended" : ""}</th>
+              <th>
+                {option.splitName}{index === 0 ? " — Recommended" : ""}
+                {option.redistributionBreakdown && (
+                  <span className="extra-payment-advisor__marker" title="Part of this figure comes from redistribution with your other splits — see the breakdown below">†</span>
+                )}
+              </th>
               <td>{formatMoney(option.interestSaved)}</td>
               <td>{formatTimeSaved(option.payoffDateBaseline, option.payoffDateWithExtraPayment)}</td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {selected?.redistributionBreakdown && (() => {
+        const breakdown = selected.redistributionBreakdown;
+        const totalMonths = selected.payoffDateBaseline && selected.payoffDateWithExtraPayment
+          ? monthsBetween(selected.payoffDateBaseline, selected.payoffDateWithExtraPayment)
+          : undefined;
+        const directMonths = breakdown.directPayoffDateBaseline && breakdown.directPayoffDateWithExtraPayment
+          ? monthsBetween(breakdown.directPayoffDateBaseline, breakdown.directPayoffDateWithExtraPayment)
+          : undefined;
+        const redistributionMonths = totalMonths !== undefined && directMonths !== undefined ? totalMonths - directMonths : undefined;
+
+        return (
+          <div className="redistribution-breakdown">
+            <p className="muted">†Where {selected.splitName}'s saving actually comes from — this split rebalances with your other splits, so some (or all) of its saving is a knock-on effect of redistribution rather than the extra payment itself.</p>
+            <table className="cash-flow-table">
+              <thead>
+                <tr><th></th><th>Interest</th><th>Time</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th>Direct (this split alone, no redistribution)</th>
+                  <td>{formatMoney(breakdown.directInterestSaved)}</td>
+                  <td>{directMonths !== undefined ? formatMonths(directMonths) : "—"}</td>
+                </tr>
+                <tr>
+                  <th>Redistribution effect</th>
+                  <td>{formatMoney(breakdown.redistributionInterestSaved)}</td>
+                  <td>{redistributionMonths !== undefined ? formatMonths(redistributionMonths) : "—"}</td>
+                </tr>
+                <tr className="cash-flow-table__net">
+                  <th>Total (as shown above)</th>
+                  <td>{formatMoney(selected.interestSaved)}</td>
+                  <td>{formatTimeSaved(selected.payoffDateBaseline, selected.payoffDateWithExtraPayment)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
 
       {selected && chartSeries && (
         <div className="extra-payment-advisor__charts">

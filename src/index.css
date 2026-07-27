@@ -183,6 +183,9 @@ select { border: 1px solid #d5e1da; border-radius: 9px; padding: 10px 32px 10px 
 .extra-payment-advisor__row { cursor: pointer; }
 .extra-payment-advisor__row:hover { background: #f5f8f6; }
 .extra-payment-advisor__row--selected th { color: #1e624a; }
+.extra-payment-advisor__marker { margin-left: 4px; color: #a3762c; font-weight: 700; cursor: help; }
+.redistribution-breakdown { margin-top: 18px; }
+.redistribution-breakdown p { margin-bottom: 8px; }
 .combined-position { margin-top: 18px; }
 .combined-position p { margin-bottom: 8px; }
 .reallocation-plan { border-top: 1px solid #eaf0ec; padding: 18px 21px 20px; margin-top: 4px; background: #fbfdfb; }
