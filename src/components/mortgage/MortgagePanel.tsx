@@ -8,6 +8,7 @@ import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability"
 import type { CashAccount } from "../../domain/cash/CashAccount";
 import { SplitCard } from "./SplitCard";
 import { SummaryCard } from "./SummaryCard";
+import { ExtraPaymentAdvisor } from "./ExtraPaymentAdvisor";
 
 interface MortgagePanelProps {
   mortgage: MortgageLiability;
@@ -110,6 +111,8 @@ export function MortgagePanel({
       </button>
 
       <SummaryCard result={result} frequency={mortgage.frequency} />
+
+      <ExtraPaymentAdvisor mortgage={mortgage} assets={cashAccounts} />
     </section>
   );
 }

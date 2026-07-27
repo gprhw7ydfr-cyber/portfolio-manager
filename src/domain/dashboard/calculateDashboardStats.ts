@@ -3,6 +3,7 @@ import type { AmortizationPayment } from "../mortgage/AmortizationPayment";
 import { isPropertyAsset } from "../property/PropertyAsset";
 import { isCashAccount } from "../cash/CashAccount";
 import { toMortgageInput } from "../mortgage/toMortgageInput";
+import { currentBalanceAsOf } from "../mortgage/scheduleAsOf";
 import { MortgageEngine } from "../../engines/MortgageEngine";
 import { calculateCashFlow, PERIODS_PER_YEAR } from "../cashflow/calculateCashFlow";
 
@@ -24,11 +25,6 @@ export interface DashboardStats {
   /** Gross rental yield: annualised property net operating income / total property value. */
   portfolioReturn: number;
   passiveIncomeAnnual: number;
-}
-
-function currentBalance(schedule: AmortizationPayment[], asOf: Date): number {
-  const upcoming = schedule.find((payment) => payment.paymentDate >= asOf);
-  return upcoming ? upcoming.openingBalance : 0;
 }
 
 function splitInterestPaidAndRemaining(schedule: AmortizationPayment[], asOf: Date): { paid: number; remaining: number } {
@@ -61,7 +57,7 @@ export function calculateDashboardStats(portfolio: Portfolio, asOf: Date = new D
 
     const result = MortgageEngine.simulate(toMortgageInput(liability, portfolio.assets));
     for (const splitResult of result.splits) {
-      totalMortgageDebt += currentBalance(splitResult.schedule, asOf);
+      totalMortgageDebt += currentBalanceAsOf(splitResult.schedule, asOf);
       const { paid, remaining } = splitInterestPaidAndRemaining(splitResult.schedule, asOf);
       totalInterestPaid += paid;
       forecastInterestRemaining += remaining;
