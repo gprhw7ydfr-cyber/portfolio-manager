@@ -8,6 +8,7 @@ import type { MortgageProductType, OffsetSettings, RevolvingCreditSettings, Revo
 import type { RefixBalanceTarget, RefixBalanceTargetMode } from "../../domain/mortgage/RefixBalanceTarget";
 import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput";
 import type { CashAccount } from "../../domain/cash/CashAccount";
+import { AmortizationDetail } from "./AmortizationDetail";
 
 interface SplitCardProps {
   split: MortgageSplit;
@@ -200,6 +201,8 @@ export function SplitCard({ split, result, canDelete, canMoveUp, canMoveDown, av
           </div>
         )}
       </div>
+
+      <AmortizationDetail schedule={result.schedule} label={split.name} />
     </article>
   );
 }

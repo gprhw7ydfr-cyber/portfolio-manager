@@ -9,6 +9,8 @@ import type { CashAccount } from "../../domain/cash/CashAccount";
 import { SplitCard } from "./SplitCard";
 import { SummaryCard } from "./SummaryCard";
 import { ExtraPaymentAdvisor } from "./ExtraPaymentAdvisor";
+import { AmortizationDetail } from "./AmortizationDetail";
+import { combineSchedules } from "../../domain/mortgage/amortizationDetail";
 
 interface MortgagePanelProps {
   mortgage: MortgageLiability;
@@ -28,6 +30,10 @@ export function MortgagePanel({
   const result = useMemo(
     () => MortgageEngine.simulate(toMortgageInput(mortgage, cashAccounts)),
     [mortgage, cashAccounts],
+  );
+  const combinedSchedule = useMemo(
+    () => combineSchedules(result.splits.map((split) => split.schedule)),
+    [result],
   );
 
   const updateSplits = (updater: (splits: MortgageSplit[]) => MortgageSplit[]) => {
@@ -111,6 +117,8 @@ export function MortgagePanel({
       </button>
 
       <SummaryCard result={result} frequency={mortgage.frequency} />
+
+      <AmortizationDetail schedule={combinedSchedule} label="Combined mortgage" />
 
       <ExtraPaymentAdvisor mortgage={mortgage} assets={cashAccounts} />
     </section>

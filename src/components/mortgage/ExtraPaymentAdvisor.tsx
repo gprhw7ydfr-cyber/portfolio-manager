@@ -1,9 +1,13 @@
 import { useMemo, useState } from "react";
-import { recommendExtraPayment } from "../../domain/mortgage/recommendExtraPayment";
+import { recommendExtraPayment, type ExtraPaymentMode } from "../../domain/mortgage/recommendExtraPayment";
 import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability";
 import type { Asset } from "../../domain/asset/Asset";
+import type { AnnualPoint } from "../../domain/dashboard/calculateDashboardCharts";
+import { annualSeriesForSchedule } from "../../domain/mortgage/annualSeries";
 import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput";
 import { formatMoney } from "../../domain/shared/formatMoney";
+import { MultiSeriesTrendChart } from "../scenario/MultiSeriesTrendChart";
+import { CATEGORICAL } from "../dashboard/chartPalette";
 
 interface ExtraPaymentAdvisorProps {
   mortgage: MortgageLiability;
@@ -12,17 +16,74 @@ interface ExtraPaymentAdvisorProps {
 
 const DEFAULT_TEST_AMOUNT = 5000;
 
+const MODE_OPTIONS: { value: ExtraPaymentMode; label: string; adornment: string }[] = [
+  { value: "lump-sum", label: "One-off lump sum", adornment: "one-off" },
+  { value: "weekly", label: "Weekly extra payment", adornment: "/week" },
+  { value: "monthly", label: "Monthly extra payment", adornment: "/month" },
+];
+
+function formatTimeSaved(baseline?: Date, withExtra?: Date): string {
+  if (!baseline || !withExtra) return "—";
+  const months = (baseline.getFullYear() - withExtra.getFullYear()) * 12 + (baseline.getMonth() - withExtra.getMonth());
+  if (months <= 0) return "—";
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  if (years === 0) return `${remainingMonths} mo`;
+  if (remainingMonths === 0) return `${years} yr`;
+  return `${years} yr ${remainingMonths} mo`;
+}
+
+/** Extends a series out to `throughYear` so a split that pays off early doesn't just stop mid-chart —
+ *  balance flatlines at zero (visually shows "paid off"), interest holds at its final value (it
+ *  doesn't accrue once the loan is gone, but it doesn't reset either). */
+function extendSeries(points: AnnualPoint[], throughYear: number, pad: "zero" | "hold"): AnnualPoint[] {
+  const last = points.at(-1);
+  if (!last || last.year >= throughYear) return points;
+  const extra: AnnualPoint[] = [];
+  for (let year = last.year + 1; year <= throughYear; year += 1) {
+    extra.push({ year, value: pad === "zero" ? 0 : last.value });
+  }
+  return [...points, ...extra];
+}
+
 export function ExtraPaymentAdvisor({ mortgage, assets }: ExtraPaymentAdvisorProps) {
   const [amount, setAmount] = useState(DEFAULT_TEST_AMOUNT);
+  const [mode, setMode] = useState<ExtraPaymentMode>("lump-sum");
+  const [selectedSplitId, setSelectedSplitId] = useState<string | null>(null);
 
   const analysis = useMemo(
-    () => recommendExtraPayment(mortgage, assets, amount),
-    [mortgage, assets, amount],
+    () => recommendExtraPayment(mortgage, assets, amount, mode),
+    [mortgage, assets, amount, mode],
   );
+
+  const selected = analysis.options.find((option) => option.splitId === selectedSplitId) ?? analysis.options[0];
+
+  const chartSeries = useMemo(() => {
+    if (!selected) return null;
+    const baselineBalance = annualSeriesForSchedule(selected.baselineSchedule).map((point) => ({ year: point.year, value: point.closingBalance }));
+    const withExtraBalance = annualSeriesForSchedule(selected.withExtraPaymentSchedule).map((point) => ({ year: point.year, value: point.closingBalance }));
+    const baselineInterest = annualSeriesForSchedule(selected.baselineSchedule).map((point) => ({ year: point.year, value: point.cumulativeInterest }));
+    const withExtraInterest = annualSeriesForSchedule(selected.withExtraPaymentSchedule).map((point) => ({ year: point.year, value: point.cumulativeInterest }));
+    const lastYear = baselineBalance.at(-1)?.year ?? withExtraBalance.at(-1)?.year;
+    if (lastYear === undefined) return null;
+
+    return {
+      balance: [
+        { label: "Baseline", color: CATEGORICAL.blue, points: baselineBalance },
+        { label: "With extra payment", color: CATEGORICAL.orange, points: extendSeries(withExtraBalance, lastYear, "zero") },
+      ],
+      interest: [
+        { label: "Baseline", color: CATEGORICAL.blue, points: baselineInterest },
+        { label: "With extra payment", color: CATEGORICAL.orange, points: extendSeries(withExtraInterest, lastYear, "hold") },
+      ],
+    };
+  }, [selected]);
 
   if (analysis.options.length < 2) {
     return null;
   }
+
+  const activeMode = MODE_OPTIONS.find((option) => option.value === mode) ?? MODE_OPTIONS[0];
 
   return (
     <div className="property-section extra-payment-advisor">
@@ -32,27 +93,56 @@ export function ExtraPaymentAdvisor({ mortgage, assets }: ExtraPaymentAdvisorPro
           <h4>Where should extra money go?</h4>
         </div>
       </div>
-      <p className="muted">Compares putting a one-off lump sum toward each split by re-running the real simulation — offset, redistribution, and refixing all included, not a rate estimate.</p>
-      <label className="offset-target">
-        <span>Extra amount</span>
-        <span className="inline-control">
-          <b>$</b>
-          <input type="number" min="0" step="500" value={amount} onFocus={selectIfZero(amount)} onChange={(event) => setAmount(numberFromInput(amount, event.target.value))} />
-        </span>
-      </label>
+      <p className="muted">Compares each split by re-running the real simulation — offset, redistribution, and refixing all included, not a rate estimate.</p>
+
+      <div className="extra-payment-advisor__controls">
+        <label className="rate-type">
+          <span>Payment type</span>
+          <select value={mode} onChange={(event) => setMode(event.target.value as ExtraPaymentMode)}>
+            {MODE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>
+        <label className="offset-target">
+          <span>Amount</span>
+          <span className="inline-control">
+            <b>$</b>
+            <input type="number" min="0" step="50" value={amount} onFocus={selectIfZero(amount)} onChange={(event) => setAmount(numberFromInput(amount, event.target.value))} />
+            <b>{activeMode.adornment}</b>
+          </span>
+        </label>
+      </div>
+
       <table className="cash-flow-table">
         <thead>
-          <tr><th>Split</th><th>Interest saved</th></tr>
+          <tr><th>Split</th><th>Interest saved</th><th>Time saved</th></tr>
         </thead>
         <tbody>
           {analysis.options.map((option, index) => (
-            <tr key={option.splitId} className={index === 0 ? "cash-flow-table__net" : undefined}>
+            <tr
+              key={option.splitId}
+              className={`extra-payment-advisor__row${selected?.splitId === option.splitId ? " extra-payment-advisor__row--selected" : ""}${index === 0 ? " cash-flow-table__net" : ""}`}
+              onClick={() => setSelectedSplitId(option.splitId)}
+            >
               <th>{option.splitName}{index === 0 ? " — Recommended" : ""}</th>
               <td>{formatMoney(option.interestSaved)}</td>
+              <td>{formatTimeSaved(option.payoffDateBaseline, option.payoffDateWithExtraPayment)}</td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {selected && chartSeries && (
+        <div className="extra-payment-advisor__charts">
+          <div>
+            <p className="muted">Loan balance — {selected.splitName}</p>
+            <MultiSeriesTrendChart seriesLabel="Loan balance" series={chartSeries.balance} />
+          </div>
+          <div>
+            <p className="muted">Cumulative interest — {selected.splitName}</p>
+            <MultiSeriesTrendChart seriesLabel="Cumulative interest" series={chartSeries.interest} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
