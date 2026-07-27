@@ -250,7 +250,7 @@ private static findPayoffDate(schedule: AmortizationPayment[]): Date | undefined
 
       const extraPayment = paymentCursors.reduce(
         (total, { payment, cursor }) =>
-          total + this.occurrencesInPeriod(cursor, payment.interval, previousPaymentDate, paymentDate) * payment.amount,
+          total + this.occurrencesInPeriod(cursor, payment.interval, previousPaymentDate, paymentDate, this.parseEndDate(payment.endDate)) * payment.amount,
         0,
       );
 
@@ -443,19 +443,27 @@ private static applyRevolvingCreditTransactions(
 }
 
 /** Advances `cursor` in place past every occurrence up to `onOrBeforeDate`, so repeated calls across
- *  chronologically increasing, contiguous periods do O(1) amortised work instead of re-walking from the start. */
+ *  chronologically increasing, contiguous periods do O(1) amortised work instead of re-walking from the start.
+ *  `endDate`, if given, stops occurrences from counting past it (the cursor still advances — only counting stops). */
 private static occurrencesInPeriod(
   cursor: OccurrenceCursor,
   interval: RecurringPaymentInterval,
   afterDate: Date,
   onOrBeforeDate: Date,
+  endDate?: Date,
 ): number {
   let count = 0;
   while (cursor.next && cursor.next <= onOrBeforeDate) {
-    if (cursor.next > afterDate) count += 1;
+    if (cursor.next > afterDate && (!endDate || cursor.next <= endDate)) count += 1;
     this.addInterval(cursor.next, interval);
   }
   return count;
+}
+
+private static parseEndDate(endDate: string | undefined): Date | undefined {
+  if (!endDate) return undefined;
+  const parsed = new Date(`${endDate}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
 private static createOccurrenceCursor(startDate: string, amount: number): OccurrenceCursor {

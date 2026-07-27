@@ -28,6 +28,39 @@ export interface ExtraPaymentAnalysis {
   options: ExtraPaymentOption[];
 }
 
+/** Builds a hypothetical mortgage with `testAmount` directed at `splitId` — a one-off lump sum
+ *  today, or a recurring weekly/monthly extra payment from today on — reused by both the ranked
+ *  comparison below and anything that wants to show what following a recommendation actually
+ *  does to the whole mortgage. */
+export function buildExtraPaymentTestMortgage(
+  mortgage: MortgageLiability,
+  splitId: string,
+  testAmount: number,
+  mode: ExtraPaymentMode,
+  asOf: Date,
+  baselineSchedule: AmortizationPayment[],
+): MortgageLiability {
+  return {
+    ...mortgage,
+    splits: mortgage.splits.map((candidate) => {
+      if (candidate.id !== splitId) return candidate;
+
+      if (mode === "lump-sum") {
+        const paymentNumber = findPaymentIndexAsOf(baselineSchedule, asOf) + 1;
+        return { ...candidate, events: [...(candidate.events ?? []), new BalanceAdjustmentEvent(paymentNumber, -testAmount)] };
+      }
+
+      return {
+        ...candidate,
+        recurringPayments: [
+          ...(candidate.recurringPayments ?? []),
+          { id: "extra-payment-test", kind: "extra", amount: testAmount, interval: mode, startDate: asOf.toISOString().slice(0, 10) },
+        ],
+      };
+    }),
+  };
+}
+
 /** Answers "if I put testAmount into split A vs split B today, which produces less total
  *  interest?" by literally simulating each candidate — so offset, redistribution, and refixing
  *  are all accounted for exactly as they actually behave, not approximated by a nominal rate.
@@ -49,26 +82,7 @@ export function recommendExtraPayment(
     const baselineSchedule = baseline.splits[index]?.schedule ?? [];
     if (currentBalanceAsOf(baselineSchedule, asOf) <= 0) return;
 
-    const testMortgage: MortgageLiability = {
-      ...mortgage,
-      splits: mortgage.splits.map((candidate, candidateIndex) => {
-        if (candidateIndex !== index) return candidate;
-
-        if (mode === "lump-sum") {
-          const paymentNumber = findPaymentIndexAsOf(baselineSchedule, asOf) + 1;
-          return { ...candidate, events: [...(candidate.events ?? []), new BalanceAdjustmentEvent(paymentNumber, -testAmount)] };
-        }
-
-        return {
-          ...candidate,
-          recurringPayments: [
-            ...(candidate.recurringPayments ?? []),
-            { id: "extra-payment-test", kind: "extra", amount: testAmount, interval: mode, startDate: asOf.toISOString().slice(0, 10) },
-          ],
-        };
-      }),
-    };
-
+    const testMortgage = buildExtraPaymentTestMortgage(mortgage, split.id, testAmount, mode, asOf, baselineSchedule);
     const testResult = MortgageEngine.simulate(toMortgageInput(testMortgage, assets));
     const withExtraPaymentSchedule = testResult.splits[index]?.schedule ?? [];
 

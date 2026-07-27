@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { recommendExtraPayment, type ExtraPaymentMode } from "../../domain/mortgage/recommendExtraPayment";
+import { recommendExtraPayment, buildExtraPaymentTestMortgage, type ExtraPaymentMode } from "../../domain/mortgage/recommendExtraPayment";
+import { compareCombinedMortgage } from "../../domain/mortgage/combinedMortgageComparison";
 import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability";
 import type { Asset } from "../../domain/asset/Asset";
 import type { AnnualPoint } from "../../domain/dashboard/calculateDashboardCharts";
@@ -8,6 +9,9 @@ import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput"
 import { formatMoney } from "../../domain/shared/formatMoney";
 import { MultiSeriesTrendChart } from "../scenario/MultiSeriesTrendChart";
 import { CATEGORICAL } from "../dashboard/chartPalette";
+import { ReallocationPlanPanel } from "./ReallocationPlanPanel";
+
+const formatPayoffDate = (date?: Date) => date ? date.toLocaleDateString("en-NZ", { month: "short", year: "numeric" }) : "—";
 
 interface ExtraPaymentAdvisorProps {
   mortgage: MortgageLiability;
@@ -79,6 +83,12 @@ export function ExtraPaymentAdvisor({ mortgage, assets }: ExtraPaymentAdvisorPro
     };
   }, [selected]);
 
+  const combinedComparison = useMemo(() => {
+    if (!selected) return null;
+    const testMortgage = buildExtraPaymentTestMortgage(mortgage, selected.splitId, amount, mode, new Date(), selected.baselineSchedule);
+    return compareCombinedMortgage(mortgage, testMortgage, assets);
+  }, [mortgage, assets, amount, mode, selected]);
+
   if (analysis.options.length < 2) {
     return null;
   }
@@ -142,6 +152,38 @@ export function ExtraPaymentAdvisor({ mortgage, assets }: ExtraPaymentAdvisorPro
             <MultiSeriesTrendChart seriesLabel="Cumulative interest" series={chartSeries.interest} />
           </div>
         </div>
+      )}
+
+      {combinedComparison && (
+        <div className="combined-position">
+          <p className="muted">Combined mortgage position if you follow this recommendation</p>
+          <table className="cash-flow-table">
+            <thead>
+              <tr><th></th><th>Baseline</th><th>With recommendation</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Total interest</th>
+                <td>{formatMoney(combinedComparison.baseline.totalInterest)}</td>
+                <td>{formatMoney(combinedComparison.withChanges.totalInterest)}</td>
+              </tr>
+              <tr>
+                <th>Total repaid</th>
+                <td>{formatMoney(combinedComparison.baseline.totalRepayment)}</td>
+                <td>{formatMoney(combinedComparison.withChanges.totalRepayment)}</td>
+              </tr>
+              <tr>
+                <th>Loan completion date</th>
+                <td>{formatPayoffDate(combinedComparison.baseline.payoffDate)}</td>
+                <td>{formatPayoffDate(combinedComparison.withChanges.payoffDate)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {mode !== "lump-sum" && (
+        <ReallocationPlanPanel mortgage={mortgage} assets={assets} testAmount={amount} interval={mode} />
       )}
     </div>
   );

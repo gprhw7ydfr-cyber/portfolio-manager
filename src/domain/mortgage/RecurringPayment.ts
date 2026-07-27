@@ -16,4 +16,6 @@ export interface RecurringPayment {
   interval: RecurringPaymentInterval;
   /** ISO calendar date. Payments begin on this date and repeat thereafter. */
   startDate: string;
+  /** ISO calendar date, inclusive. Undefined means the payment repeats indefinitely. */
+  endDate?: string;
 }
