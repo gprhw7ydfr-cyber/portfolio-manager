@@ -16,6 +16,10 @@ export function SummaryCard({ result, frequency }: SummaryCardProps) {
         <ResultCard emphasis label={`${frequency[0].toUpperCase()}${frequency.slice(1)} repayments`} value={money(result.repayment)} supportingText="Across all splits" />
         <ResultCard label="Total interest" value={money(result.totalInterest)} />
         <ResultCard label="Total repaid" value={money(result.totalRepayment)} />
+        <ResultCard
+          label="Loan completion date"
+          value={result.payoffDate ? result.payoffDate.toLocaleDateString("en-NZ", { month: "short", year: "numeric" }) : "—"}
+        />
       </div>
     </section>
   );

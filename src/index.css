@@ -57,8 +57,6 @@ select { border: 1px solid #d5e1da; border-radius: 9px; padding: 10px 32px 10px 
 .product-settings p { max-width: 490px; margin-bottom: 7px; color: #75867e; font-size: .82rem; }
 .offset-settings { margin-top: 14px; }
 .offset-settings .product-settings { margin-top: 0; }
-.offset-topup { display: flex; gap: 8px; align-items: center; margin-top: 12px; color: #355c4d; font-size: .82rem; font-weight: 650; }
-.offset-topup input { accent-color: #297254; }
 .offset-target { display: grid; gap: 5px; width: min(260px, 100%); margin-top: 12px; color: #697a72; font-size: .68rem; font-weight: 700; }
 .offset-target input { width: 100%; min-width: 0; padding: 7px 4px 7px 8px; border: 0; outline: 0; }
 .revolving-settings { margin-top: 14px; }

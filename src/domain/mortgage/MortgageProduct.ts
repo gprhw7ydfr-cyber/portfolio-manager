@@ -6,8 +6,6 @@ export interface OffsetSettings {
   offsetBalance: number;
   /** A linked CashAccount whose currentValue overrides offsetBalance at simulation time. */
   linkedAccountId?: string;
-  maintainLoanBalanceAtRefix?: boolean;
-  refixLoanBalanceTarget?: number;
 }
 
 export interface RevolvingCreditTransaction {

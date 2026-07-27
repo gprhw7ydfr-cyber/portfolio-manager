@@ -30,35 +30,27 @@ export class SimulationRunner {
   let results = simulatedSplits.map((item) => this.runSplit(item, input));
 
   for (const [paymentNumber, refixingSplitIds] of this.refixTriggers(simulatedSplits, input)) {
-    let transfersAdded = false;
-    const sourceIndices = refixingSplitIds
-      .map((id) => simulatedSplits.findIndex((item) => item.id === id))
-      .filter((index) => index >= 0);
+    const participantIndices = this.refixParticipants(refixingSplitIds, simulatedSplits);
+    if (participantIndices.length < 2) continue;
 
-    for (const [targetIndex, targetSplit] of simulatedSplits.entries()) {
-      if (targetSplit.productType !== "offset" || !targetSplit.offsetSettings?.maintainLoanBalanceAtRefix) continue;
+    const balances = simulatedSplits.map((_, index) => results[index].schedule[paymentNumber - 1]?.openingBalance ?? 0);
+    const targets = this.resolveRefixTargets(participantIndices, simulatedSplits, balances);
+    const transfers = this.matchRefixTransfers(targets, balances);
+    if (transfers.length === 0) continue;
 
-      const targetBalance = results[targetIndex].schedule[paymentNumber - 1]?.openingBalance ?? 0;
-      let amountNeeded = Math.max((targetSplit.offsetSettings.refixLoanBalanceTarget ?? 0) - targetBalance, 0);
-
-      for (const sourceIndex of sourceIndices) {
-        if (amountNeeded <= 0) break;
-        if (sourceIndex === targetIndex) continue;
-        const sourceBalance = results[sourceIndex].schedule[paymentNumber - 1]?.openingBalance ?? 0;
-        const transfer = Math.min(amountNeeded, sourceBalance);
-        if (transfer <= 0) continue;
-
-        simulatedSplits[sourceIndex].events?.push(new BalanceAdjustmentEvent(paymentNumber, -transfer));
-        simulatedSplits[targetIndex].events?.push(new BalanceAdjustmentEvent(paymentNumber, transfer));
-        amountNeeded -= transfer;
-        transfersAdded = true;
-      }
+    for (const transfer of transfers) {
+      simulatedSplits[transfer.fromIndex].events?.push(new BalanceAdjustmentEvent(paymentNumber, -transfer.amount));
+      simulatedSplits[transfer.toIndex].events?.push(new BalanceAdjustmentEvent(paymentNumber, transfer.amount));
     }
-
-    if (transfersAdded) results = simulatedSplits.map((item) => this.runSplit(item, input));
+    results = simulatedSplits.map((item) => this.runSplit(item, input));
   }
 
-const portfolio = {
+const payoffDates = results.map((result) => this.findPayoffDate(result.schedule));
+const payoffDate = payoffDates.every((date): date is Date => date !== undefined)
+  ? new Date(Math.max(...payoffDates.map((date) => date.getTime())))
+  : undefined;
+
+const portfolio: MortgageSummary = {
   repayment: results.reduce(
     (sum, result) => sum + result.repayment,
     0
@@ -74,11 +66,97 @@ const portfolio = {
     0
   ),
 
+  payoffDate,
+
   splits: results,
 };
 
 return portfolio;
  }
+
+/** A split participates in a refix trigger's redistribution only if it opted in with a
+ *  refixBalanceTarget, and either its own term ends at this exact payment or it's not
+ *  fixed-rate at all (floating/offset splits have no lock-in, so they can always move). */
+private static refixParticipants(refixingSplitIds: string[], splits: MortgageSplit[]): number[] {
+  const refixingIds = new Set(refixingSplitIds);
+  return splits
+    .map((split, index) => ({ split, index }))
+    .filter(({ split }) => split.refixBalanceTarget && (refixingIds.has(split.id) || split.rateType !== "fixed"))
+    .map(({ index }) => index);
+}
+
+/** Resolves every participant's target balance: value/percentage targets first (scaled down
+ *  proportionally if they'd exceed the total), then remainder-mode targets split the leftover
+ *  by normalised share. */
+private static resolveRefixTargets(
+  participantIndices: number[],
+  splits: MortgageSplit[],
+  balances: number[],
+): Map<number, number> {
+  const totalBalance = participantIndices.reduce((sum, index) => sum + balances[index], 0);
+
+  const rawTargets = new Map<number, number>();
+  for (const index of participantIndices) {
+    const target = splits[index].refixBalanceTarget;
+    if (target?.mode === "value") rawTargets.set(index, Math.max(target.amount ?? 0, 0));
+    else if (target?.mode === "percentage") rawTargets.set(index, Math.max(target.percentage ?? 0, 0) / 100 * totalBalance);
+  }
+
+  const nonRemainderSum = [...rawTargets.values()].reduce((sum, value) => sum + value, 0);
+  const scale = nonRemainderSum > totalBalance && nonRemainderSum > 0 ? totalBalance / nonRemainderSum : 1;
+
+  const resolved = new Map<number, number>();
+  for (const [index, raw] of rawTargets) resolved.set(index, raw * scale);
+
+  const remainderIndices = participantIndices.filter((index) => splits[index].refixBalanceTarget?.mode === "remainder");
+  const remainderPool = Math.max(totalBalance - [...resolved.values()].reduce((sum, value) => sum + value, 0), 0);
+  const totalShares = remainderIndices.reduce((sum, index) => sum + Math.max(splits[index].refixBalanceTarget?.share ?? 0, 0), 0);
+
+  for (const index of remainderIndices) {
+    const share = Math.max(splits[index].refixBalanceTarget?.share ?? 0, 0);
+    const normalisedShare = totalShares > 0 ? share / totalShares : 1 / remainderIndices.length;
+    resolved.set(index, remainderPool * normalisedShare);
+  }
+
+  return resolved;
+}
+
+/** Nets resolved targets against current balances into concrete transfers — money can flow
+ *  either direction between any two participants, not just one designated source-to-sink. */
+private static matchRefixTransfers(
+  targets: Map<number, number>,
+  balances: number[],
+): { fromIndex: number; toIndex: number; amount: number }[] {
+  const givers = [...targets.entries()]
+    .map(([index, target]) => ({ index, amount: balances[index] - target }))
+    .filter((entry) => entry.amount > 0.01);
+  const receivers = [...targets.entries()]
+    .map(([index, target]) => ({ index, amount: target - balances[index] }))
+    .filter((entry) => entry.amount > 0.01);
+
+  const transfers: { fromIndex: number; toIndex: number; amount: number }[] = [];
+  let giverCursor = 0;
+
+  for (const receiver of receivers) {
+    let remaining = receiver.amount;
+    while (remaining > 0.01 && giverCursor < givers.length) {
+      const giver = givers[giverCursor];
+      const amount = Math.min(remaining, giver.amount);
+      if (amount > 0.01) {
+        transfers.push({ fromIndex: giver.index, toIndex: receiver.index, amount });
+        giver.amount -= amount;
+        remaining -= amount;
+      }
+      if (giver.amount <= 0.01) giverCursor += 1;
+    }
+  }
+
+  return transfers;
+}
+
+private static findPayoffDate(schedule: AmortizationPayment[]): Date | undefined {
+  return schedule.find((payment) => payment.closingBalance === 0)?.paymentDate;
+}
 
   static runSplit(
     split: MortgageSplit,
@@ -181,12 +259,20 @@ return portfolio;
         : Math.max(openingBalance - (state.offsetBalance ?? 0), 0);
       const interestForPeriod = chargeableBalance * dailyRate * daysInPeriod;
 
+      // Day-count interest doesn't exactly match the periodic-rate annuity formula that sized
+      // scheduledRepayment, so it can drift a little short over hundreds of payments. True up
+      // the final scheduled payment to clear the balance exactly, like a real payoff statement.
+      const isFinalScheduledPayment = paymentNumber === n && split.productType !== "revolving-credit";
+      const effectiveScheduledRepayment = isFinalScheduledPayment
+        ? interestForPeriod + openingBalance
+        : scheduledRepayment;
+
       const paymentAmounts = split.productType === "revolving-credit"
         ? this.calculateRevolvingCreditPayment(openingBalance, interestForPeriod)
         : this.calculatePaymentAmounts(
           openingBalance,
           interestForPeriod,
-          scheduledRepayment,
+          effectiveScheduledRepayment,
           extraPayment,
         );
       const { interest, principalPaid, actualRepayment, closingBalance, actualExtraPayment } = paymentAmounts;
@@ -197,7 +283,7 @@ return portfolio;
   state.annualRate,
   openingBalance,
   actualRepayment,
-  scheduledRepayment,
+  effectiveScheduledRepayment,
   actualExtraPayment,
   interest,
   principalPaid,

@@ -5,6 +5,7 @@ import { ResultCard } from "./ResultCard";
 import type { RecurringPayment, RecurringPaymentInterval } from "../../domain/mortgage/RecurringPayment";
 import type { FixedRateSettings } from "../../domain/mortgage/FixedRateSettings";
 import type { MortgageProductType, OffsetSettings, RevolvingCreditSettings, RevolvingCreditTransaction } from "../../domain/mortgage/MortgageProduct";
+import type { RefixBalanceTarget, RefixBalanceTargetMode } from "../../domain/mortgage/RefixBalanceTarget";
 import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput";
 import type { CashAccount } from "../../domain/cash/CashAccount";
 
@@ -58,6 +59,14 @@ export function SplitCard({ split, result, canDelete, canMoveUp, canMoveDown, av
   const transactions = revolvingSettings.transactions ?? [];
   const updateRevolvingSettings = (changes: Partial<RevolvingCreditSettings>) => onChange({ revolvingCreditSettings: { ...revolvingSettings, ...changes } });
   const updateTransaction = (id: string, changes: Partial<RevolvingCreditTransaction>) => updateRevolvingSettings({ transactions: transactions.map((item) => item.id === id ? { ...item, ...changes } : item) });
+  const refixTarget = split.refixBalanceTarget;
+  const setRefixMode = (mode: RefixBalanceTargetMode | "none") => onChange({
+    refixBalanceTarget: mode === "none" ? undefined : { mode, amount: refixTarget?.amount ?? 0, percentage: refixTarget?.percentage ?? 0, share: refixTarget?.share ?? 1 },
+  });
+  const updateRefixTarget = (changes: Partial<RefixBalanceTarget>) => {
+    if (!refixTarget) return;
+    onChange({ refixBalanceTarget: { ...refixTarget, ...changes } });
+  };
 
   return (
     <article className="split-card">
@@ -124,8 +133,6 @@ export function SplitCard({ split, result, canDelete, canMoveUp, canMoveDown, av
             )}
             <p>Your interest is calculated only on the loan balance above this amount.</p>
           </div>
-          <label className="offset-topup"><input type="checkbox" checked={offsetSettings.maintainLoanBalanceAtRefix ?? false} onChange={(event) => updateOffsetSettings({ maintainLoanBalanceAtRefix: event.target.checked, refixLoanBalanceTarget: offsetSettings.refixLoanBalanceTarget ?? split.principal })} /><span>Transfer principal into this offset loan whenever a fixed split refixes.</span></label>
-          {offsetSettings.maintainLoanBalanceAtRefix && <label className="offset-target"><span>Offset loan balance at refix</span><span className="inline-control"><b>$</b><input type="number" min="0" step="1000" value={offsetSettings.refixLoanBalanceTarget ?? 0} onFocus={selectIfZero(offsetSettings.refixLoanBalanceTarget ?? 0)} onChange={(event) => updateOffsetSettings({ refixLoanBalanceTarget: numberFromInput(offsetSettings.refixLoanBalanceTarget ?? 0, event.target.value) })} /></span></label>}
         </div>}
         {split.productType === "revolving-credit" && <div className="revolving-settings"><div className="product-settings"><label><span>Credit limit</span><span className="inline-control"><b>$</b><input type="number" min="0" step="1000" value={revolvingSettings.creditLimit} onFocus={(event) => { if (revolvingSettings.creditLimit === 0) event.currentTarget.select(); }} onChange={(event) => updateRevolvingSettings({ creditLimit: numberFromInput(revolvingSettings.creditLimit, event.target.value) })} /></span></label><p>Interest is serviced each repayment period. Deposits reduce the drawn balance; withdrawals increase it, up to the limit.</p></div><div className="revolving-actions"><button className="text-button" onClick={() => updateRevolvingSettings({ transactions: [...transactions, createRevolvingTransaction("deposit")] })}>+ Deposit</button><button className="text-button" onClick={() => updateRevolvingSettings({ transactions: [...transactions, createRevolvingTransaction("withdrawal")] })}>+ Withdrawal</button></div>{transactions.map((transaction) => <div className="payment-rule" key={transaction.id}><strong>{transaction.type === "deposit" ? "Deposit" : "Withdrawal"}</strong><label><span>Amount</span><span className="inline-control"><b>$</b><input type="number" min="0" value={transaction.amount} onFocus={(event) => { if (transaction.amount === 0) event.currentTarget.select(); }} onChange={(event) => updateTransaction(transaction.id, { amount: numberFromInput(transaction.amount, event.target.value) })} /></span></label><label><span>Repeats</span><select value={transaction.interval} onChange={(event) => updateTransaction(transaction.id, { interval: event.target.value as RevolvingCreditTransaction["interval"] })}><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label><label><span>First transaction</span><input type="date" value={transaction.startDate} onChange={(event) => updateTransaction(transaction.id, { startDate: event.target.value })} /></label><button className="icon-button payment-rule__delete" title="Remove transaction" onClick={() => updateRevolvingSettings({ transactions: transactions.filter((item) => item.id !== transaction.id) })}>×</button></div>)}</div>}
       </div>
@@ -144,6 +151,30 @@ export function SplitCard({ split, result, canDelete, canMoveUp, canMoveDown, av
             <label><span>Refix term</span><span className="inline-control"><input aria-label="Refix term in months" type="number" min="1" value={fixedSettings.refixTermMonths} onFocus={(event) => { if (fixedSettings.refixTermMonths === 0) event.currentTarget.select(); }} onChange={(event) => updateFixedSettings({ refixTermMonths: numberFromInput(fixedSettings.refixTermMonths, event.target.value) })} /><b>months</b></span></label>
           </div>
         ) : <p className="rate-plan__help">Floating loans retain the current rate until a rate-change event is added.</p>}
+      </div>
+      <div className="rate-plan">
+        <div className="rate-plan__heading">
+          <div><span className="split-card__label">Refix redistribution</span><h4>Rebalance at refix</h4></div>
+          <label className="rate-type">
+            <span>Mode</span>
+            <select value={refixTarget?.mode ?? "none"} onChange={(event) => setRefixMode(event.target.value as RefixBalanceTargetMode | "none")}>
+              <option value="none">Off</option>
+              <option value="value">Fixed value</option>
+              <option value="percentage">Percentage of mortgage</option>
+              <option value="remainder">Share of remainder</option>
+            </select>
+          </label>
+        </div>
+        {refixTarget?.mode === "value" && (
+          <label className="offset-target"><span>Target balance</span><span className="inline-control"><b>$</b><input type="number" min="0" step="1000" value={refixTarget.amount ?? 0} onFocus={selectIfZero(refixTarget.amount ?? 0)} onChange={(event) => updateRefixTarget({ amount: numberFromInput(refixTarget.amount ?? 0, event.target.value) })} /></span></label>
+        )}
+        {refixTarget?.mode === "percentage" && (
+          <label className="offset-target"><span>Target percentage of mortgage</span><span className="inline-control"><input type="number" min="0" max="100" step="1" value={refixTarget.percentage ?? 0} onFocus={selectIfZero(refixTarget.percentage ?? 0)} onChange={(event) => updateRefixTarget({ percentage: numberFromInput(refixTarget.percentage ?? 0, event.target.value) })} /><b>%</b></span></label>
+        )}
+        {refixTarget?.mode === "remainder" && (
+          <label className="offset-target"><span>Share of remainder</span><span className="inline-control"><input type="number" min="0" step="1" value={refixTarget.share ?? 1} onFocus={selectIfZero(refixTarget.share ?? 1)} onChange={(event) => updateRefixTarget({ share: numberFromInput(refixTarget.share ?? 1, event.target.value) })} /></span></label>
+        )}
+        <p className="rate-plan__help">{refixTarget ? "Whenever any split in this mortgage refixes, this split's balance moves toward its target." : "Off — this split's balance is never touched by another split's refix."}</p>
       </div>
       <div className="payment-plan">
         <div className="payment-plan__heading">

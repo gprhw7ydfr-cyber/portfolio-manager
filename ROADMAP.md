@@ -25,6 +25,11 @@ Loan splits (fixed/floating), automatic refixing, offset accounts with refix top
 - Interest-Only period, Repayment Type field
 - Refinance event, effective-rate output
 
+**Post-Phase-4 engine enhancement** — general refix redistribution, requested once Phases 1–4 made "compare repayment strategies" a concrete goal:
+- `RefixBalanceTarget` (`src/domain/mortgage/RefixBalanceTarget.ts`) lets *any* split opt into a value, percentage-of-mortgage, or weighted-share-of-remainder target; `SimulationRunner` resolves every participating split's target at each refix and nets out whatever transfers (either direction) are needed to hit them — a real rebalance, not the old one-directional "drain sources to top up one offset split." Replaces `OffsetSettings.maintainLoanBalanceAtRefix`/`refixLoanBalanceTarget`.
+- Found and fixed along the way: the day-count interest engine (Phase 0) didn't exactly match the periodic-rate annuity formula sizing the level repayment, so a fully-amortising loan could finish its scheduled term with a small non-zero residual (e.g. $270 on a $100k/30yr loan) instead of $0 — invisible until a new "loan completion date" stat made it visible. The final scheduled payment now truncates to clear the balance exactly, like a real payoff statement.
+- `MortgageSummary.payoffDate` — the mortgage's overall completion date, shown on `SummaryCard`; undefined (shown as "—") unless every split actually reaches zero (e.g. absent if a revolving-credit split is present).
+
 ## Phase 1 — Domain Foundations (done)
 
 Generalise the mortgage-only domain into the shape everything else builds on. This is the highest-leverage phase — get it wrong and later phases force rework.
