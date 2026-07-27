@@ -137,6 +137,23 @@ select { border: 1px solid #d5e1da; border-radius: 9px; padding: 10px 32px 10px 
 .chart-tooltip { justify-self: start; display: grid; gap: 2px; padding: 8px 12px; border-radius: 9px; background: #172b25; color: #fff; font-size: .8rem; }
 .chart-tooltip strong { font-size: .95rem; }
 .chart-tooltip span { color: #cfe3d7; }
+.scenario-list-page { display: grid; gap: 40px; }
+.scenario-card { position: relative; gap: 8px; }
+.scenario-card__select { display: grid; gap: 4px; text-align: left; border: 0; background: transparent; padding: 0; width: 100%; }
+.scenario-card__delete { justify-self: start; padding-left: 0; }
+.scenario-detail { display: grid; gap: 32px; }
+.scenario-name { font-size: inherit; font-weight: inherit; letter-spacing: inherit; }
+.scenario-rate-override { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.scenario-rate-override input[type="checkbox"] { width: 16px; height: 16px; }
+.strategy-event-row { grid-template-columns: unset; display: flex; flex-wrap: wrap; align-items: end; gap: 10px 16px; }
+.strategy-event-row strong { flex: 0 0 100%; padding-bottom: 0; }
+.strategy-event-row label { min-width: 130px; flex: 1 1 130px; }
+.strategy-event-row .payment-rule__delete { margin-left: auto; align-self: center; }
+.scenario-comparison { display: grid; gap: 18px; }
+.scenario-comparison__table { display: grid; gap: 1px; background: #eaf0ec; border: 1px solid #eaf0ec; border-radius: 12px; overflow: hidden; }
+.scenario-comparison__row { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; padding: 10px 14px; background: #fff; font-size: .86rem; }
+.scenario-comparison__row--header { background: #f5f8f6; font-weight: 700; color: #4e6159; font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; }
+.scenario-comparison__row span:not(:first-child) { text-align: right; font-weight: 700; }
 @media (max-width: 720px) { main { padding: 25px 16px 40px; } .app-header, .calculator__heading, .split-card__header, .property-detail__heading { align-items: start; flex-direction: column; } .split-card__actions { justify-content: start; } .split-card__body { grid-template-columns: 1fr; } .frequency-control { width: 100%; } select { width: 100%; } }
 @media (max-width: 720px) { .payment-rule { grid-template-columns: 1fr 1fr; } .payment-rule strong { grid-column: 1 / -1; padding: 0; } .payment-rule__delete { grid-column: 2; justify-self: end; } }
-@media (max-width: 500px) { .split-results, .summary-card__results, .payment-rule, .rate-settings, .property-grid, .cash-account-body { grid-template-columns: 1fr; } .input-row { grid-template-columns: 1fr; gap: 4px; } .split-card__header, .split-card__body, .summary-card, .payment-plan, .rate-plan, .product-plan, .property-section { padding: 16px; } .payment-plan__heading, .rate-plan__heading, .product-plan__heading, .product-settings, .property-section__heading { align-items: start; flex-direction: column; } .payment-rule__delete { grid-column: 1; justify-self: end; } .cash-flow-table { font-size: .78rem; } .cash-flow-table th, .cash-flow-table td { padding: 7px 6px; } .main-nav { width: 100%; } .main-nav__link { flex: 1; } }
+@media (max-width: 500px) { .split-results, .summary-card__results, .payment-rule, .rate-settings, .property-grid, .cash-account-body { grid-template-columns: 1fr; } .input-row { grid-template-columns: 1fr; gap: 4px; } .split-card__header, .split-card__body, .summary-card, .payment-plan, .rate-plan, .product-plan, .property-section { padding: 16px; } .payment-plan__heading, .rate-plan__heading, .product-plan__heading, .product-settings, .property-section__heading { align-items: start; flex-direction: column; } .payment-rule__delete { grid-column: 1; justify-self: end; } .cash-flow-table { font-size: .78rem; } .cash-flow-table th, .cash-flow-table td { padding: 7px 6px; } .main-nav { width: 100%; } .main-nav__link { flex: 1; } .scenario-comparison__row { grid-template-columns: 1fr; text-align: left; gap: 2px; } .scenario-comparison__row span:not(:first-child) { text-align: left; } }

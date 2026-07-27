@@ -17,7 +17,7 @@ export function loadPortfolio(): Portfolio | undefined {
   try {
     const stored = JSON.parse(raw) as StoredPortfolio;
     if (stored.schemaVersion !== SCHEMA_VERSION) return undefined;
-    return stored.portfolio;
+    return { ...stored.portfolio, scenarios: stored.portfolio.scenarios ?? [] };
   } catch {
     return undefined;
   }

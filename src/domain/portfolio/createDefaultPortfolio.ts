@@ -22,5 +22,6 @@ export function createDefaultPortfolio(): Portfolio {
         splits: [createDefaultSplit("Main Mortgage", { principal: 500000 })],
       },
     ],
+    scenarios: [],
   };
 }
