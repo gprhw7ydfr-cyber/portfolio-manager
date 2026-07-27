@@ -4,8 +4,9 @@ import { Dashboard } from "./components/dashboard/Dashboard";
 import { PropertyList } from "./components/property/PropertyList";
 import { PropertyDetail } from "./components/property/PropertyDetail";
 import { ScenarioList } from "./components/scenario/ScenarioList";
+import { ReportsHome } from "./components/reporting/ReportsHome";
 
-type View = "dashboard" | "properties" | "strategies";
+type View = "dashboard" | "properties" | "strategies" | "reports";
 
 function AppContent() {
   const [view, setView] = useState<View>("dashboard");
@@ -38,12 +39,20 @@ function AppContent() {
           >
             Strategies
           </button>
+          <button
+            className={`main-nav__link${view === "reports" ? " main-nav__link--active" : ""}`}
+            onClick={() => setView("reports")}
+          >
+            Reports
+          </button>
         </nav>
       </header>
       {view === "dashboard" ? (
         <Dashboard />
       ) : view === "strategies" ? (
         <ScenarioList />
+      ) : view === "reports" ? (
+        <ReportsHome />
       ) : selectedPropertyId ? (
         <PropertyDetail propertyId={selectedPropertyId} onBack={() => setSelectedPropertyId(null)} />
       ) : (
