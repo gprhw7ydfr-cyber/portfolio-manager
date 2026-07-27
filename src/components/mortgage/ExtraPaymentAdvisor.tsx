@@ -8,7 +8,8 @@ import { annualSeriesForSchedule } from "../../domain/mortgage/annualSeries";
 import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput";
 import { formatMoney } from "../../domain/shared/formatMoney";
 import { MultiSeriesTrendChart } from "../scenario/MultiSeriesTrendChart";
-import { CATEGORICAL } from "../dashboard/chartPalette";
+import { getCategorical } from "../dashboard/chartPalette";
+import { useTheme } from "../../store/useTheme";
 import { ReallocationPlanPanel } from "./ReallocationPlanPanel";
 
 const formatPayoffDate = (date?: Date) => date ? date.toLocaleDateString("en-NZ", { month: "short", year: "numeric" }) : "—";
@@ -64,6 +65,8 @@ export function ExtraPaymentAdvisor({ mortgage, assets }: ExtraPaymentAdvisorPro
   const [amount, setAmount] = useState(DEFAULT_TEST_AMOUNT);
   const [mode, setMode] = useState<ExtraPaymentMode>("lump-sum");
   const [selectedSplitId, setSelectedSplitId] = useState<string | null>(null);
+  const [theme] = useTheme();
+  const categorical = getCategorical(theme);
 
   const analysis = useMemo(
     () => recommendExtraPayment(mortgage, assets, amount, mode),
@@ -83,15 +86,15 @@ export function ExtraPaymentAdvisor({ mortgage, assets }: ExtraPaymentAdvisorPro
 
     return {
       balance: [
-        { label: "Baseline", color: CATEGORICAL.blue, points: baselineBalance },
-        { label: "With extra payment", color: CATEGORICAL.orange, points: extendSeries(withExtraBalance, lastYear, "zero") },
+        { label: "Baseline", color: categorical.blue, points: baselineBalance },
+        { label: "With extra payment", color: categorical.orange, points: extendSeries(withExtraBalance, lastYear, "zero") },
       ],
       interest: [
-        { label: "Baseline", color: CATEGORICAL.blue, points: baselineInterest },
-        { label: "With extra payment", color: CATEGORICAL.orange, points: extendSeries(withExtraInterest, lastYear, "hold") },
+        { label: "Baseline", color: categorical.blue, points: baselineInterest },
+        { label: "With extra payment", color: categorical.orange, points: extendSeries(withExtraInterest, lastYear, "hold") },
       ],
     };
-  }, [selected]);
+  }, [selected, categorical]);
 
   const combinedComparison = useMemo(() => {
     if (!selected) return null;

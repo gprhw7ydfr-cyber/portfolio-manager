@@ -1,6 +1,7 @@
 import { useState, type PointerEvent } from "react";
 import type { AnnualPoint } from "../../domain/dashboard/calculateDashboardCharts";
-import { CHART_INK } from "../dashboard/chartPalette";
+import { getChartInk } from "../dashboard/chartPalette";
+import { useTheme } from "../../store/useTheme";
 import { formatMoney, formatCompactMoney } from "../../domain/shared/formatMoney";
 
 export interface TrendSeries {
@@ -34,6 +35,8 @@ function valueAtYear(points: AnnualPoint[], year: number): number | undefined {
 
 export function MultiSeriesTrendChart({ series, seriesLabel }: MultiSeriesTrendChartProps) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [theme] = useTheme();
+  const chartInk = getChartInk(theme);
 
   const nonEmpty = series.filter((item) => item.points.length > 0);
   if (nonEmpty.length === 0) {
@@ -71,12 +74,12 @@ export function MultiSeriesTrendChart({ series, seriesLabel }: MultiSeriesTrendC
           const y = BASELINE - plotHeight * step;
           return (
             <g key={step}>
-              <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={y} y2={y} stroke={CHART_INK.gridline} strokeWidth="1" />
-              <text x={PLOT_LEFT} y={y - 4} fontSize="10" fill={CHART_INK.muted}>{formatCompactMoney(max * step)}</text>
+              <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={y} y2={y} stroke={chartInk.gridline} strokeWidth="1" />
+              <text x={PLOT_LEFT} y={y - 4} fontSize="10" fill={chartInk.muted}>{formatCompactMoney(max * step)}</text>
             </g>
           );
         })}
-        <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={BASELINE} y2={BASELINE} stroke={CHART_INK.baseline} strokeWidth="1" />
+        <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={BASELINE} y2={BASELINE} stroke={chartInk.baseline} strokeWidth="1" />
 
         {nonEmpty.map((item) => {
           const linePath = item.points.map((point, index) => `${index === 0 ? "M" : "L"}${xForYear(point.year)},${yForValue(point.value)}`).join(" ");
@@ -84,23 +87,23 @@ export function MultiSeriesTrendChart({ series, seriesLabel }: MultiSeriesTrendC
           return (
             <g key={item.label}>
               <path d={linePath} fill="none" stroke={item.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx={xForYear(last.year)} cy={yForValue(last.value)} r="5" fill={item.color} stroke={CHART_INK.surface} strokeWidth="2" />
-              <text x={xForYear(last.year)} y={yForValue(last.value) - 10} fontSize="11" fontWeight="700" fill={CHART_INK.primary} textAnchor="end">{formatCompactMoney(last.value)}</text>
+              <circle cx={xForYear(last.year)} cy={yForValue(last.value)} r="5" fill={item.color} stroke={chartInk.surface} strokeWidth="2" />
+              <text x={xForYear(last.year)} y={yForValue(last.value) - 10} fontSize="11" fontWeight="700" fill={chartInk.primary} textAnchor="end">{formatCompactMoney(last.value)}</text>
             </g>
           );
         })}
 
         {xLabels.map((year) => (
-          <text key={year} x={xForYear(year)} y={BASELINE + 16} fontSize="11" fill={CHART_INK.secondary} textAnchor="middle">{year}</text>
+          <text key={year} x={xForYear(year)} y={BASELINE + 16} fontSize="11" fill={chartInk.secondary} textAnchor="middle">{year}</text>
         ))}
 
         {hoveredYear !== undefined && (
-          <line x1={xForYear(hoveredYear)} x2={xForYear(hoveredYear)} y1={PLOT_TOP} y2={BASELINE} stroke={CHART_INK.baseline} strokeWidth="1" />
+          <line x1={xForYear(hoveredYear)} x2={xForYear(hoveredYear)} y1={PLOT_TOP} y2={BASELINE} stroke={chartInk.baseline} strokeWidth="1" />
         )}
         {hoveredYear !== undefined && nonEmpty.map((item) => {
           const value = valueAtYear(item.points, hoveredYear);
           if (value === undefined) return null;
-          return <circle key={item.label} cx={xForYear(hoveredYear)} cy={yForValue(value)} r="5" fill={item.color} stroke={CHART_INK.surface} strokeWidth="2" />;
+          return <circle key={item.label} cx={xForYear(hoveredYear)} cy={yForValue(value)} r="5" fill={item.color} stroke={chartInk.surface} strokeWidth="2" />;
         })}
 
         <rect

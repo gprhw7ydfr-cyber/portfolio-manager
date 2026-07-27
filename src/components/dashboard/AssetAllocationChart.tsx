@@ -1,5 +1,6 @@
 import type { AllocationSlice } from "../../domain/dashboard/calculateDashboardCharts";
-import { ASSET_TYPE_COLOR } from "./chartPalette";
+import { getAssetTypeColor } from "./chartPalette";
+import { useTheme } from "../../store/useTheme";
 import { formatMoney } from "../../domain/shared/formatMoney";
 
 interface AssetAllocationChartProps {
@@ -11,6 +12,8 @@ const BAR_HEIGHT = 22;
 const GAP = 2;
 
 export function AssetAllocationChart({ slices }: AssetAllocationChartProps) {
+  const [theme] = useTheme();
+  const assetTypeColor = getAssetTypeColor(theme);
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
 
   if (total <= 0) {
@@ -43,7 +46,7 @@ export function AssetAllocationChart({ slices }: AssetAllocationChartProps) {
               y="0"
               width={Math.max(segment.width, 0)}
               height={BAR_HEIGHT}
-              fill={ASSET_TYPE_COLOR[segment.type]}
+              fill={assetTypeColor[segment.type]}
             >
               <title>{`${segment.label}: ${formatMoney(segment.value)} (${((segment.value / total) * 100).toFixed(0)}%)`}</title>
             </rect>
@@ -53,7 +56,7 @@ export function AssetAllocationChart({ slices }: AssetAllocationChartProps) {
       <ul className="chart-legend">
         {segments.map((segment) => (
           <li key={segment.type}>
-            <span className="chart-legend__swatch" style={{ background: ASSET_TYPE_COLOR[segment.type] }} />
+            <span className="chart-legend__swatch" style={{ background: assetTypeColor[segment.type] }} />
             <span className="chart-legend__label">{segment.label}</span>
             <span className="chart-legend__value">{formatMoney(segment.value)}</span>
             <span className="chart-legend__percent">{((segment.value / total) * 100).toFixed(0)}%</span>

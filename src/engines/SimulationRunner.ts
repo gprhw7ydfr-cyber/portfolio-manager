@@ -287,7 +287,10 @@ private static findPayoffDate(schedule: AmortizationPayment[]): Date | undefined
   actualExtraPayment,
   interest,
   principalPaid,
-  closingBalance
+  closingBalance,
+  dailyRate,
+  daysInPeriod,
+  chargeableBalance
 );
 
       totalRepayment += actualRepayment;
@@ -363,7 +366,10 @@ private static createPayment(
   extraPayment: number,
   interest: number,
   principal: number,
-  closingBalance: number
+  closingBalance: number,
+  dailyRate: number,
+  daysInPeriod: number,
+  chargeableBalance: number
 ): AmortizationPayment {
   return {
     paymentNumber,
@@ -376,6 +382,9 @@ private static createPayment(
     interest,
     principal,
     closingBalance,
+    dailyRate,
+    daysInPeriod,
+    chargeableBalance,
   };
 }
 private static calculatePaymentAmounts(

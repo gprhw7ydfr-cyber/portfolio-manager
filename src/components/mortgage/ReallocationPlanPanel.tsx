@@ -5,7 +5,8 @@ import type { Asset } from "../../domain/asset/Asset";
 import { annualSeriesForSchedule } from "../../domain/mortgage/annualSeries";
 import { formatMoney } from "../../domain/shared/formatMoney";
 import { MultiSeriesTrendChart } from "../scenario/MultiSeriesTrendChart";
-import { CATEGORICAL } from "../dashboard/chartPalette";
+import { getCategorical } from "../dashboard/chartPalette";
+import { useTheme } from "../../store/useTheme";
 
 interface ReallocationPlanPanelProps {
   mortgage: MortgageLiability;
@@ -32,6 +33,8 @@ function totalsFor(schedule: ReallocationPlan["combinedBaselineSchedule"]) {
 export function ReallocationPlanPanel({ mortgage, assets, testAmount, interval }: ReallocationPlanPanelProps) {
   const [plan, setPlan] = useState<ReallocationPlan | null>(null);
   const [isPlanning, setIsPlanning] = useState(false);
+  const [theme] = useTheme();
+  const categorical = getCategorical(theme);
 
   const runPlan = () => {
     setIsPlanning(true);
@@ -47,12 +50,12 @@ export function ReallocationPlanPanel({ mortgage, assets, testAmount, interval }
 
   const chartSeries = plan ? {
     balance: [
-      { label: "Baseline", color: CATEGORICAL.blue, points: annualSeriesForSchedule(plan.combinedBaselineSchedule).map((point) => ({ year: point.year, value: point.closingBalance })) },
-      { label: "With reallocation plan", color: CATEGORICAL.orange, points: annualSeriesForSchedule(plan.combinedWithPlanSchedule).map((point) => ({ year: point.year, value: point.closingBalance })) },
+      { label: "Baseline", color: categorical.blue, points: annualSeriesForSchedule(plan.combinedBaselineSchedule).map((point) => ({ year: point.year, value: point.closingBalance })) },
+      { label: "With reallocation plan", color: categorical.orange, points: annualSeriesForSchedule(plan.combinedWithPlanSchedule).map((point) => ({ year: point.year, value: point.closingBalance })) },
     ],
     interest: [
-      { label: "Baseline", color: CATEGORICAL.blue, points: annualSeriesForSchedule(plan.combinedBaselineSchedule).map((point) => ({ year: point.year, value: point.cumulativeInterest })) },
-      { label: "With reallocation plan", color: CATEGORICAL.orange, points: annualSeriesForSchedule(plan.combinedWithPlanSchedule).map((point) => ({ year: point.year, value: point.cumulativeInterest })) },
+      { label: "Baseline", color: categorical.blue, points: annualSeriesForSchedule(plan.combinedBaselineSchedule).map((point) => ({ year: point.year, value: point.cumulativeInterest })) },
+      { label: "With reallocation plan", color: categorical.orange, points: annualSeriesForSchedule(plan.combinedWithPlanSchedule).map((point) => ({ year: point.year, value: point.cumulativeInterest })) },
     ],
   } : null;
 

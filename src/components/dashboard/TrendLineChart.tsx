@@ -1,6 +1,7 @@
 import { useState, type PointerEvent } from "react";
 import type { AnnualPoint } from "../../domain/dashboard/calculateDashboardCharts";
-import { CHART_INK } from "./chartPalette";
+import { getChartInk } from "./chartPalette";
+import { useTheme } from "../../store/useTheme";
 import { formatMoney, formatCompactMoney } from "../../domain/shared/formatMoney";
 
 interface TrendLineChartProps {
@@ -25,6 +26,8 @@ function niceMax(value: number): number {
 
 export function TrendLineChart({ points, color, seriesLabel }: TrendLineChartProps) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [theme] = useTheme();
+  const chartInk = getChartInk(theme);
 
   if (points.length === 0) {
     return <p className="chart-empty">Not enough data yet.</p>;
@@ -64,27 +67,27 @@ export function TrendLineChart({ points, color, seriesLabel }: TrendLineChartPro
           const y = BASELINE - plotHeight * step;
           return (
             <g key={step}>
-              <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={y} y2={y} stroke={CHART_INK.gridline} strokeWidth="1" />
-              <text x={PLOT_LEFT} y={y - 4} fontSize="10" fill={CHART_INK.muted}>{formatCompactMoney(max * step)}</text>
+              <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={y} y2={y} stroke={chartInk.gridline} strokeWidth="1" />
+              <text x={PLOT_LEFT} y={y - 4} fontSize="10" fill={chartInk.muted}>{formatCompactMoney(max * step)}</text>
             </g>
           );
         })}
-        <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={BASELINE} y2={BASELINE} stroke={CHART_INK.baseline} strokeWidth="1" />
+        <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={BASELINE} y2={BASELINE} stroke={chartInk.baseline} strokeWidth="1" />
 
         <path d={areaPath} fill={color} opacity="0.1" stroke="none" />
         <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 
         {xLabels.map((point) => (
-          <text key={point.year} x={xForIndex(points.indexOf(point))} y={BASELINE + 16} fontSize="11" fill={CHART_INK.secondary} textAnchor="middle">{point.year}</text>
+          <text key={point.year} x={xForIndex(points.indexOf(point))} y={BASELINE + 16} fontSize="11" fill={chartInk.secondary} textAnchor="middle">{point.year}</text>
         ))}
 
-        <circle cx={xForIndex(points.length - 1)} cy={yForValue(last.value)} r="5" fill={color} stroke={CHART_INK.surface} strokeWidth="2" />
-        <text x={xForIndex(points.length - 1)} y={yForValue(last.value) - 10} fontSize="11" fontWeight="700" fill={CHART_INK.primary} textAnchor="end">{formatCompactMoney(last.value)}</text>
+        <circle cx={xForIndex(points.length - 1)} cy={yForValue(last.value)} r="5" fill={color} stroke={chartInk.surface} strokeWidth="2" />
+        <text x={xForIndex(points.length - 1)} y={yForValue(last.value) - 10} fontSize="11" fontWeight="700" fill={chartInk.primary} textAnchor="end">{formatCompactMoney(last.value)}</text>
 
         {hovered && (
           <g>
-            <line x1={xForIndex(hoverIndex!)} x2={xForIndex(hoverIndex!)} y1={PLOT_TOP} y2={BASELINE} stroke={CHART_INK.baseline} strokeWidth="1" />
-            <circle cx={xForIndex(hoverIndex!)} cy={yForValue(hovered.value)} r="5" fill={color} stroke={CHART_INK.surface} strokeWidth="2" />
+            <line x1={xForIndex(hoverIndex!)} x2={xForIndex(hoverIndex!)} y1={PLOT_TOP} y2={BASELINE} stroke={chartInk.baseline} strokeWidth="1" />
+            <circle cx={xForIndex(hoverIndex!)} cy={yForValue(hovered.value)} r="5" fill={color} stroke={chartInk.surface} strokeWidth="2" />
           </g>
         )}
 

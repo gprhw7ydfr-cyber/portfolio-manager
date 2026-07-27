@@ -7,12 +7,15 @@ import { ResultCard } from "../mortgage/ResultCard";
 import { AssetAllocationChart } from "./AssetAllocationChart";
 import { PropertyValuesChart } from "./PropertyValuesChart";
 import { TrendLineChart } from "./TrendLineChart";
-import { CATEGORICAL } from "./chartPalette";
+import { getCategorical } from "./chartPalette";
+import { useTheme } from "../../store/useTheme";
 
 const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
 
 export function Dashboard() {
   const [portfolio] = usePortfolio();
+  const [theme] = useTheme();
+  const categorical = getCategorical(theme);
   const stats = useMemo(() => calculateDashboardStats(portfolio), [portfolio]);
   const charts = useMemo(() => calculateDashboardCharts(portfolio), [portfolio]);
 
@@ -63,14 +66,14 @@ export function Dashboard() {
         <div className="calculator__heading">
           <div><p className="eyebrow">Mortgages</p><h2>Loan balance over time.</h2></div>
         </div>
-        <TrendLineChart points={charts.loanBalanceSeries} color={CATEGORICAL.blue} seriesLabel="Loan balance" />
+        <TrendLineChart points={charts.loanBalanceSeries} color={categorical.blue} seriesLabel="Loan balance" />
       </section>
 
       <section className="calculator other-mortgages">
         <div className="calculator__heading">
           <div><p className="eyebrow">Mortgages</p><h2>Interest paid over time.</h2></div>
         </div>
-        <TrendLineChart points={charts.interestPaidSeries} color={CATEGORICAL.orange} seriesLabel="Cumulative interest paid" />
+        <TrendLineChart points={charts.interestPaidSeries} color={categorical.orange} seriesLabel="Cumulative interest paid" />
       </section>
     </div>
   );

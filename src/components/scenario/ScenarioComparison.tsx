@@ -6,7 +6,8 @@ import { projectPortfolio } from "../../domain/scenario/projectPortfolio";
 import { formatMoney } from "../../domain/shared/formatMoney";
 import { ResultCard } from "../mortgage/ResultCard";
 import { MultiSeriesTrendChart } from "./MultiSeriesTrendChart";
-import { CATEGORICAL } from "../dashboard/chartPalette";
+import { getCategorical } from "../dashboard/chartPalette";
+import { useTheme } from "../../store/useTheme";
 
 interface ScenarioComparisonProps {
   portfolio: Portfolio;
@@ -14,6 +15,8 @@ interface ScenarioComparisonProps {
 }
 
 export function ScenarioComparison({ portfolio, scenario }: ScenarioComparisonProps) {
+  const [theme] = useTheme();
+  const categorical = getCategorical(theme);
   const baselineYears = useMemo(
     () => projectPortfolio(portfolio, createBaselineScenario(scenario.assumptions.projectionYears)),
     [portfolio, scenario.assumptions.projectionYears],
@@ -63,8 +66,8 @@ export function ScenarioComparison({ portfolio, scenario }: ScenarioComparisonPr
       <MultiSeriesTrendChart
         seriesLabel="Net worth"
         series={[
-          { label: "Baseline", color: CATEGORICAL.blue, points: baselineYears.map((year) => ({ year: year.year, value: year.netWorth })) },
-          { label: scenario.name, color: CATEGORICAL.orange, points: scenarioYears.map((year) => ({ year: year.year, value: year.netWorth })) },
+          { label: "Baseline", color: categorical.blue, points: baselineYears.map((year) => ({ year: year.year, value: year.netWorth })) },
+          { label: scenario.name, color: categorical.orange, points: scenarioYears.map((year) => ({ year: year.year, value: year.netWorth })) },
         ]}
       />
     </div>

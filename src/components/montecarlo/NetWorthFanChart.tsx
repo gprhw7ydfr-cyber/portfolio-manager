@@ -1,6 +1,7 @@
 import { useState, type PointerEvent } from "react";
 import type { NetWorthPercentiles } from "../../domain/montecarlo/runMonteCarloSimulation";
-import { CHART_INK, CATEGORICAL } from "../dashboard/chartPalette";
+import { getChartInk, getCategorical } from "../dashboard/chartPalette";
+import { useTheme } from "../../store/useTheme";
 import { formatMoney, formatCompactMoney } from "../../domain/shared/formatMoney";
 
 interface NetWorthFanChartProps {
@@ -12,7 +13,6 @@ const VIEW_HEIGHT = 280;
 const PLOT_TOP = 16;
 const PLOT_BOTTOM = 220;
 const PLOT_LEFT = 0;
-const COLOR = CATEGORICAL.blue;
 
 function niceStep(range: number): number {
   if (range <= 0) return 100;
@@ -26,6 +26,9 @@ function niceStep(range: number): number {
  *  weights (light fill for the band, solid line for the median), not three categorical colors. */
 export function NetWorthFanChart({ points }: NetWorthFanChartProps) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [theme] = useTheme();
+  const chartInk = getChartInk(theme);
+  const COLOR = getCategorical(theme).blue;
 
   if (points.length === 0) {
     return <p className="chart-empty">Not enough data yet.</p>;
@@ -77,8 +80,8 @@ export function NetWorthFanChart({ points }: NetWorthFanChartProps) {
           const y = yForValue(value);
           return (
             <g key={step}>
-              <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={y} y2={y} stroke={value === 0 ? CHART_INK.baseline : CHART_INK.gridline} strokeWidth="1" />
-              <text x={PLOT_LEFT} y={y - 4} fontSize="10" fill={CHART_INK.muted}>{formatCompactMoney(value)}</text>
+              <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={y} y2={y} stroke={value === 0 ? chartInk.baseline : chartInk.gridline} strokeWidth="1" />
+              <text x={PLOT_LEFT} y={y - 4} fontSize="10" fill={chartInk.muted}>{formatCompactMoney(value)}</text>
             </g>
           );
         })}
@@ -87,16 +90,16 @@ export function NetWorthFanChart({ points }: NetWorthFanChartProps) {
         <path d={medianPath} fill="none" stroke={COLOR} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 
         {xLabels.map((point) => (
-          <text key={point.year} x={xForIndex(points.indexOf(point))} y={PLOT_BOTTOM + 16} fontSize="11" fill={CHART_INK.secondary} textAnchor="middle">{point.year}</text>
+          <text key={point.year} x={xForIndex(points.indexOf(point))} y={PLOT_BOTTOM + 16} fontSize="11" fill={chartInk.secondary} textAnchor="middle">{point.year}</text>
         ))}
 
-        <circle cx={xForIndex(points.length - 1)} cy={yForValue(last.median)} r="5" fill={COLOR} stroke={CHART_INK.surface} strokeWidth="2" />
-        <text x={xForIndex(points.length - 1)} y={yForValue(last.median) - 10} fontSize="11" fontWeight="700" fill={CHART_INK.primary} textAnchor="end">{formatCompactMoney(last.median)}</text>
+        <circle cx={xForIndex(points.length - 1)} cy={yForValue(last.median)} r="5" fill={COLOR} stroke={chartInk.surface} strokeWidth="2" />
+        <text x={xForIndex(points.length - 1)} y={yForValue(last.median) - 10} fontSize="11" fontWeight="700" fill={chartInk.primary} textAnchor="end">{formatCompactMoney(last.median)}</text>
 
         {hovered && (
           <g>
-            <line x1={xForIndex(hoverIndex!)} x2={xForIndex(hoverIndex!)} y1={PLOT_TOP} y2={PLOT_BOTTOM} stroke={CHART_INK.baseline} strokeWidth="1" />
-            <circle cx={xForIndex(hoverIndex!)} cy={yForValue(hovered.median)} r="5" fill={COLOR} stroke={CHART_INK.surface} strokeWidth="2" />
+            <line x1={xForIndex(hoverIndex!)} x2={xForIndex(hoverIndex!)} y1={PLOT_TOP} y2={PLOT_BOTTOM} stroke={chartInk.baseline} strokeWidth="1" />
+            <circle cx={xForIndex(hoverIndex!)} cy={yForValue(hovered.median)} r="5" fill={COLOR} stroke={chartInk.surface} strokeWidth="2" />
           </g>
         )}
 

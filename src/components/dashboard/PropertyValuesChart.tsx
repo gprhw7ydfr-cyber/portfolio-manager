@@ -1,5 +1,6 @@
 import type { NamedValue } from "../../domain/dashboard/calculateDashboardCharts";
-import { SEQUENTIAL_BLUE, CHART_INK } from "./chartPalette";
+import { getSequentialBlue, getChartInk } from "./chartPalette";
+import { useTheme } from "../../store/useTheme";
 import { formatMoney, formatCompactMoney } from "../../domain/shared/formatMoney";
 
 interface PropertyValuesChartProps {
@@ -21,6 +22,10 @@ function niceMax(value: number): number {
 }
 
 export function PropertyValuesChart({ properties }: PropertyValuesChartProps) {
+  const [theme] = useTheme();
+  const chartInk = getChartInk(theme);
+  const sequentialBlue = getSequentialBlue(theme);
+
   if (properties.length === 0) {
     return <p className="chart-empty">No properties recorded yet.</p>;
   }
@@ -38,23 +43,23 @@ export function PropertyValuesChart({ properties }: PropertyValuesChartProps) {
           const y = BASELINE - plotHeight * step;
           return (
             <g key={step}>
-              <line x1="0" x2={VIEW_WIDTH} y1={y} y2={y} stroke={CHART_INK.gridline} strokeWidth="1" />
-              <text x="0" y={y - 4} fontSize="10" fill={CHART_INK.muted}>{formatCompactMoney(max * step)}</text>
+              <line x1="0" x2={VIEW_WIDTH} y1={y} y2={y} stroke={chartInk.gridline} strokeWidth="1" />
+              <text x="0" y={y - 4} fontSize="10" fill={chartInk.muted}>{formatCompactMoney(max * step)}</text>
             </g>
           );
         })}
-        <line x1="0" x2={VIEW_WIDTH} y1={BASELINE} y2={BASELINE} stroke={CHART_INK.baseline} strokeWidth="1" />
+        <line x1="0" x2={VIEW_WIDTH} y1={BASELINE} y2={BASELINE} stroke={chartInk.baseline} strokeWidth="1" />
         {properties.map((property, index) => {
           const barHeight = Math.max((property.value / max) * plotHeight, 0);
           const x = index * bandWidth + (bandWidth - barWidth) / 2;
           const y = BASELINE - barHeight;
           return (
             <g key={property.label} className="bar-chart__bar">
-              <rect x={x} y={y} width={barWidth} height={Math.max(barHeight, 1)} rx="4" fill={SEQUENTIAL_BLUE}>
+              <rect x={x} y={y} width={barWidth} height={Math.max(barHeight, 1)} rx="4" fill={sequentialBlue}>
                 <title>{`${property.label}: ${formatMoney(property.value)}`}</title>
               </rect>
-              <text x={x + barWidth / 2} y={y - 6} fontSize="11" fill={CHART_INK.secondary} textAnchor="middle">{formatCompactMoney(property.value)}</text>
-              <text x={x + barWidth / 2} y={BASELINE + 16} fontSize="11" fill={CHART_INK.secondary} textAnchor="middle">{property.label}</text>
+              <text x={x + barWidth / 2} y={y - 6} fontSize="11" fill={chartInk.secondary} textAnchor="middle">{formatCompactMoney(property.value)}</text>
+              <text x={x + barWidth / 2} y={BASELINE + 16} fontSize="11" fill={chartInk.secondary} textAnchor="middle">{property.label}</text>
             </g>
           );
         })}
