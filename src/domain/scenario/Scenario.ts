@@ -6,6 +6,8 @@ export interface ScenarioAssumptions {
   propertyGrowthRate: number;
   rentalGrowthRate: number;
   expenseInflationRate: number;
+  /** % of annual rent lost to vacancy, applied uniformly across every property. Undefined = 0. */
+  vacancyRate?: number;
   /** Flat annual % applied to every mortgage split for the whole projection, overriding
    *  each split's own rate and fixed-rate schedule — a simplification, not a refix simulator. */
   mortgageRateOverride?: number;

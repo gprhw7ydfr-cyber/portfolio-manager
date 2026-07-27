@@ -6,6 +6,7 @@ import { isPropertyAsset } from "../../domain/property/PropertyAsset";
 import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput";
 import { StrategyEventRow, type NamedOption } from "./StrategyEventRow";
 import { ScenarioComparison } from "./ScenarioComparison";
+import { MonteCarloPanel } from "../montecarlo/MonteCarloPanel";
 
 interface ScenarioDetailProps {
   portfolio: Portfolio;
@@ -101,6 +102,13 @@ export function ScenarioDetail({ portfolio, scenario, onChange, onBack }: Scenar
               <span className="input-row__adornment">% p.a.</span>
             </span>
           </label>
+          <label className="input-row">
+            <span>Vacancy rate</span>
+            <span className="input-row__control">
+              <input type="number" min="0" max="100" step="0.5" value={assumptions.vacancyRate ?? 0} onFocus={selectIfZero(assumptions.vacancyRate ?? 0)} onChange={(event) => updateAssumptions({ vacancyRate: numberFromInput(assumptions.vacancyRate ?? 0, event.target.value) })} />
+              <span className="input-row__adornment">% of rent</span>
+            </span>
+          </label>
         </div>
         <label className="rate-type scenario-rate-override">
           <span>Mortgage rate override</span>
@@ -146,6 +154,10 @@ export function ScenarioDetail({ portfolio, scenario, onChange, onBack }: Scenar
 
       <section className="calculator other-mortgages">
         <ScenarioComparison portfolio={portfolio} scenario={scenario} />
+      </section>
+
+      <section className="calculator other-mortgages">
+        <MonteCarloPanel portfolio={portfolio} scenario={scenario} />
       </section>
     </div>
   );

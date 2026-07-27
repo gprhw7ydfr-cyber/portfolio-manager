@@ -258,9 +258,10 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
     const activeProperties = properties.filter((p) => p.activeFromYear <= offset && offset < p.activeToYear);
     const totalPropertyValue = activeProperties.reduce((sum, p) => sum + valueAtOffset(p, offset), 0);
 
+    const vacancyFactor = 1 - (scenario.assumptions.vacancyRate ?? 0) / 100;
     const propertyIncome = activeProperties.reduce((sum, p) => {
       const grown = Math.pow(1 + scenario.assumptions.rentalGrowthRate / 100, offset - p.activeFromYear);
-      return sum + (p.rentPerWeek * PERIODS_PER_YEAR.weekly + p.otherIncomePerYear) * grown;
+      return sum + (p.rentPerWeek * PERIODS_PER_YEAR.weekly * vacancyFactor + p.otherIncomePerYear) * grown;
     }, 0);
     const propertyExpenses = activeProperties.reduce((sum, p) => {
       const grown = Math.pow(1 + scenario.assumptions.expenseInflationRate / 100, offset - p.activeFromYear);
