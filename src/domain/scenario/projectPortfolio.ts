@@ -19,6 +19,12 @@ export interface ProjectionYear {
   totalLiabilities: number;
   annualCashFlow: number;
   totalInterestPaid: number;
+  /** Weeks this year's `annualCashFlow` actually represents — 52 for a normal full year; less only
+   *  for the projection's first year (offset 0), when some active property was purchased partway
+   *  through the current calendar year, so a plain /52 for a "weekly" view would understate the real
+   *  week-to-week rate. Approximated as the most conservative (smallest) ownership fraction among
+   *  that year's active properties, rounded to whole weeks — exact for a single-property portfolio. */
+  weeksInYear: number;
 }
 
 interface PropertyProjection {
@@ -32,6 +38,12 @@ interface PropertyProjection {
   otherIncomePerYear: number;
   expensesAnnual: number;
   valueBumps: { year: number; amount: number }[];
+  /** Fraction of the CURRENT calendar year (offset 0 only) this property has actually earned income/
+   *  incurred expenses for — an existing property purchased partway through this year shouldn't be
+   *  credited a full 12 months of rent against, say, a mortgage whose own schedule (correctly) only
+   *  covers the months since it actually originated. Always 1 for a buy-property-event property,
+   *  since its construction already treats the buy as happening on Jan 1 of its own origination year. */
+  currentYearOwnershipFraction: number;
 }
 
 interface MortgageProjection {
@@ -39,10 +51,11 @@ interface MortgageProjection {
   series: YearPoint[];
   activeFromYear: number;
   activeToYear: number;
-  /** True only for a mortgage originated mid-projection by a buy-property event — its first active
-   *  year has no "previous calendar year" balance to diff against, since the debt didn't exist yet. */
+  /** Fallback "previous balance" for a year whose prior calendar year predates this mortgage's
+   *  own series (a buy-property-event origination, or — just as real — an existing liability
+   *  whose own startDate falls within the current projection's first calendar year), since there's
+   *  no actual prior-year balance to diff against in either case. */
   originalPrincipal: number;
-  isNewOrigination: boolean;
 }
 
 /** Jan 1 of the given offset year — every scenario event fires on this boundary, keeping the whole
@@ -108,6 +121,20 @@ function buildWorkingSplit(
   return working;
 }
 
+/** 1 for a property purchased before `currentYear` (the common case, and always true a year or
+ *  more into any projection); less than 1 if purchased partway through `currentYear` itself. */
+function currentYearOwnershipFraction(purchaseDate: string, currentYear: number): number {
+  const purchased = new Date(`${purchaseDate}T00:00:00`);
+  const yearStartDate = new Date(currentYear, 0, 1);
+  const yearEndDate = new Date(currentYear, 11, 31);
+  if (purchased <= yearStartDate) return 1;
+  if (purchased > yearEndDate) return 0;
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const daysInYear = Math.round((yearEndDate.getTime() - yearStartDate.getTime()) / msPerDay) + 1;
+  const daysOwnedThisYear = Math.round((yearEndDate.getTime() - purchased.getTime()) / msPerDay) + 1;
+  return Math.max(0, Math.min(1, daysOwnedThisYear / daysInYear));
+}
+
 function valueAtOffset(property: PropertyProjection, offsetYear: number): number {
   const yearsGrown = Math.max(offsetYear - property.activeFromYear, 0);
   const grown = property.baseValue * Math.pow(1 + property.growthRate, yearsGrown);
@@ -156,7 +183,6 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
       activeFromYear: 0,
       activeToYear: projectionYears + 1,
       originalPrincipal: substituteMortgageScenario.splits.reduce((sum, split) => sum + split.principal, 0),
-      isNewOrigination: false,
     });
   } else {
     for (const liability of portfolio.liabilities) {
@@ -179,7 +205,6 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
         activeFromYear: 0,
         activeToYear: projectionYears + 1,
         originalPrincipal: liability.splits.reduce((sum, split) => sum + split.principal, 0),
-        isNewOrigination: false,
       });
     }
   }
@@ -212,7 +237,6 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
       activeFromYear: event.year,
       activeToYear: projectionYears + 1,
       originalPrincipal: split.principal,
-      isNewOrigination: true,
     });
     oneOffCashByYear.set(event.year, (oneOffCashByYear.get(event.year) ?? 0) - event.deposit);
   }
@@ -229,6 +253,7 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
       + property.expenses.bodyCorporatePerYear + property.expenses.propertyManagementPerYear
       + property.expenses.utilitiesPerYear + property.expenses.otherExpensesPerYear,
     valueBumps: [],
+    currentYearOwnershipFraction: currentYearOwnershipFraction(property.purchaseDate, currentYear),
   }));
 
   for (const event of buyEvents) {
@@ -242,6 +267,7 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
       otherIncomePerYear: 0,
       expensesAnnual: 0,
       valueBumps: [],
+      currentYearOwnershipFraction: 1,
     });
   }
 
@@ -293,11 +319,13 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
     const vacancyFactor = 1 - (scenario.assumptions.vacancyRate ?? 0) / 100;
     const propertyIncome = activeProperties.reduce((sum, p) => {
       const grown = Math.pow(1 + scenario.assumptions.rentalGrowthRate / 100, offset - p.activeFromYear);
-      return sum + (p.rentPerWeek * PERIODS_PER_YEAR.weekly * vacancyFactor + p.otherIncomePerYear) * grown;
+      const ownershipFraction = offset === 0 ? p.currentYearOwnershipFraction : 1;
+      return sum + (p.rentPerWeek * PERIODS_PER_YEAR.weekly * vacancyFactor + p.otherIncomePerYear) * grown * ownershipFraction;
     }, 0);
     const propertyExpenses = activeProperties.reduce((sum, p) => {
       const grown = Math.pow(1 + scenario.assumptions.expenseInflationRate / 100, offset - p.activeFromYear);
-      return sum + p.expensesAnnual * grown;
+      const ownershipFraction = offset === 0 ? p.currentYearOwnershipFraction : 1;
+      return sum + p.expensesAnnual * grown * ownershipFraction;
     }, 0);
 
     let totalMortgageDebt = 0;
@@ -308,9 +336,13 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
       const isActive = mortgage.activeFromYear <= offset && offset < mortgage.activeToYear;
       if (isActive) {
         const current = valueAtYear(mortgage.series, calendarYear);
-        const isOriginationYear = mortgage.isNewOrigination && offset === mortgage.activeFromYear;
-        const previousInterest = isOriginationYear ? 0 : valueAtYear(mortgage.series, calendarYear - 1).cumulativeInterest;
-        const previousBalance = isOriginationYear ? mortgage.originalPrincipal : valueAtYear(mortgage.series, calendarYear - 1).closingBalance;
+        // Whenever the prior calendar year predates this mortgage's own series — a buy-property-event
+        // origination, or an existing liability whose startDate falls within the current projection's
+        // first year — there's no real "previous balance" to diff against, so fall back to the original
+        // principal rather than the incorrectly-clamped 0 valueAtYear would otherwise return.
+        const hasPriorYearData = mortgage.series.length > 0 && calendarYear - 1 >= mortgage.series[0].year;
+        const previousInterest = hasPriorYearData ? valueAtYear(mortgage.series, calendarYear - 1).cumulativeInterest : 0;
+        const previousBalance = hasPriorYearData ? valueAtYear(mortgage.series, calendarYear - 1).closingBalance : mortgage.originalPrincipal;
         totalMortgageDebt += current.closingBalance;
         mortgageRepayment += (current.cumulativeInterest - previousInterest) + (previousBalance - current.closingBalance);
       }
@@ -330,6 +362,10 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
     const totalAssets = totalPropertyValue + totalCash + otherAssetsValue;
     const totalLiabilities = totalMortgageDebt;
 
+    const weeksInYear = offset === 0 && activeProperties.length > 0
+      ? Math.max(1, Math.round(52 * Math.min(...activeProperties.map((p) => p.currentYearOwnershipFraction))))
+      : 52;
+
     years.push({
       year: calendarYear,
       netWorth: totalAssets - totalLiabilities,
@@ -337,6 +373,7 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
       totalLiabilities,
       annualCashFlow,
       totalInterestPaid,
+      weeksInYear,
     });
   }
 

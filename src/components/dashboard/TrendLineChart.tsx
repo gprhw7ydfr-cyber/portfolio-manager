@@ -16,8 +16,9 @@ const PLOT_TOP = 16;
 const BASELINE = 220;
 const PLOT_LEFT = 0;
 
-function niceMax(value: number): number {
-  if (value <= 0) return 100;
+/** 0 means "no extent needed on this side of zero" — the caller decides what that implies. */
+function niceStep(value: number): number {
+  if (value <= 0) return 0;
   const magnitude = 10 ** Math.floor(Math.log10(value));
   const normalized = value / magnitude;
   const step = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
@@ -33,18 +34,36 @@ export function TrendLineChart({ points, color, seriesLabel }: TrendLineChartPro
     return <p className="chart-empty">Not enough data yet.</p>;
   }
 
-  const max = niceMax(Math.max(...points.map((point) => point.value)));
+  // Signed-domain scale: zero is always representable, and sits proportionally between the
+  // top (positive) and bottom (negative) "nice" extents instead of always at the plot's bottom
+  // edge — necessary because a series like net worth isn't reliably non-negative. When every
+  // value is >= 0 (loan balance, cumulative interest — every caller today), bottomExtent is 0
+  // and this reduces to exactly the old fixed-bottom-baseline behaviour.
+  const rawMax = Math.max(...points.map((point) => point.value), 0);
+  const rawMin = Math.min(...points.map((point) => point.value), 0);
+  const topExtentRaw = niceStep(rawMax);
+  const bottomExtent = niceStep(-rawMin);
+  // Flat-all-zero fallback (no data on either side): give the top side a sensible scale, matching
+  // the old behaviour of treating zero as the floor rather than the middle.
+  const topExtent = topExtentRaw > 0 || bottomExtent > 0 ? topExtentRaw : 100;
+  const totalExtent = topExtent + bottomExtent;
+
   const plotHeight = BASELINE - PLOT_TOP;
   const plotWidth = VIEW_WIDTH - PLOT_LEFT;
+  const baselineY = PLOT_TOP + (topExtent / totalExtent) * plotHeight;
+  const topPlotHeight = baselineY - PLOT_TOP;
+  const bottomPlotHeight = BASELINE - baselineY;
   const minYear = points[0].year;
   const maxYear = points[points.length - 1].year;
   const yearSpan = Math.max(maxYear - minYear, 1);
 
   const xForIndex = (index: number) => PLOT_LEFT + ((points[index].year - minYear) / yearSpan) * plotWidth;
-  const yForValue = (value: number) => BASELINE - (value / max) * plotHeight;
+  const yForValue = (value: number) => value >= 0
+    ? (topExtent > 0 ? baselineY - (value / topExtent) * topPlotHeight : baselineY)
+    : (bottomExtent > 0 ? baselineY + (-value / bottomExtent) * bottomPlotHeight : baselineY);
 
   const linePath = points.map((point, index) => `${index === 0 ? "M" : "L"}${xForIndex(index)},${yForValue(point.value)}`).join(" ");
-  const areaPath = `${linePath} L${xForIndex(points.length - 1)},${BASELINE} L${xForIndex(0)},${BASELINE} Z`;
+  const areaPath = `${linePath} L${xForIndex(points.length - 1)},${baselineY} L${xForIndex(0)},${baselineY} Z`;
 
   const gridSteps = [0.25, 0.5, 0.75, 1];
   const yearStep = Math.max(Math.ceil(points.length / 6), 1);
@@ -63,16 +82,25 @@ export function TrendLineChart({ points, color, seriesLabel }: TrendLineChartPro
   return (
     <div className="chart">
       <svg viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`} className="trend-chart" role="img" aria-label={seriesLabel}>
-        {gridSteps.map((step) => {
-          const y = BASELINE - plotHeight * step;
+        {topExtent > 0 && gridSteps.map((step) => {
+          const y = baselineY - topPlotHeight * step;
           return (
-            <g key={step}>
+            <g key={`top-${step}`}>
               <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={y} y2={y} stroke={chartInk.gridline} strokeWidth="1" />
-              <text x={PLOT_LEFT} y={y - 4} fontSize="10" fill={chartInk.muted}>{formatCompactMoney(max * step)}</text>
+              <text x={PLOT_LEFT} y={y - 4} fontSize="10" fill={chartInk.muted}>{formatCompactMoney(topExtent * step)}</text>
             </g>
           );
         })}
-        <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={BASELINE} y2={BASELINE} stroke={chartInk.baseline} strokeWidth="1" />
+        {bottomExtent > 0 && gridSteps.map((step) => {
+          const y = baselineY + bottomPlotHeight * step;
+          return (
+            <g key={`bottom-${step}`}>
+              <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={y} y2={y} stroke={chartInk.gridline} strokeWidth="1" />
+              <text x={PLOT_LEFT} y={y - 4} fontSize="10" fill={chartInk.muted}>{formatCompactMoney(-bottomExtent * step)}</text>
+            </g>
+          );
+        })}
+        <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={baselineY} y2={baselineY} stroke={chartInk.baseline} strokeWidth="1" />
 
         <path d={areaPath} fill={color} opacity="0.1" stroke="none" />
         <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
