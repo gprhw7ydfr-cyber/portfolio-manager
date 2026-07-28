@@ -24,6 +24,5 @@ export function createDefaultPortfolio(): Portfolio {
     ],
     scenarios: [],
     mortgageScenarios: [],
-    mortgageStrategies: [],
   };
 }

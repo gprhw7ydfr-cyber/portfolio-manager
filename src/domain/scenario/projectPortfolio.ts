@@ -128,28 +128,60 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
 
   const mortgages: MortgageProjection[] = [];
 
-  for (const liability of portfolio.liabilities) {
-    if (liability.type !== "mortgage") continue;
-    const startDate = new Date(`${liability.startDate}T00:00:00`);
-    const workingSplits = liability.splits.map((split) => buildWorkingSplit(
+  const substituteMortgageScenario = scenario.assumptions.mortgageScenarioId
+    ? portfolio.mortgageScenarios.find((candidate) => candidate.id === scenario.assumptions.mortgageScenarioId)
+    : undefined;
+
+  if (substituteMortgageScenario) {
+    // Stands in for the portfolio's ENTIRE real mortgage debt, not a per-property merge — a
+    // portfolio can have several properties each with their own real mortgage, and there's no
+    // natural 1:1 mapping onto one hypothetical structure. Not tied to a propertyId, so a
+    // sell-property event won't reduce it; this feature is about the overall lending shape, not
+    // per-property tracking.
+    const startDate = new Date(`${substituteMortgageScenario.startDate}T00:00:00`);
+    const workingSplits = substituteMortgageScenario.splits.map((split) => buildWorkingSplit(
       split,
       scenario,
       startDate,
-      liability.frequency,
+      substituteMortgageScenario.frequency,
       currentYear,
       refinanceEvents.filter((event) => event.splitId === split.id),
       increaseEvents.filter((event) => event.splitId === split.id),
     ));
-    const input = toMortgageInput({ ...liability, splits: workingSplits }, portfolio.assets);
+    const input = toMortgageInput({ ...substituteMortgageScenario, splits: workingSplits }, portfolio.assets);
     const result = MortgageEngine.simulate(input);
     mortgages.push({
-      propertyId: liability.propertyId,
+      propertyId: undefined,
       series: combineSeries(result.splits.map((split) => annualSeriesForSchedule(split.schedule))),
       activeFromYear: 0,
       activeToYear: projectionYears + 1,
-      originalPrincipal: liability.splits.reduce((sum, split) => sum + split.principal, 0),
+      originalPrincipal: substituteMortgageScenario.splits.reduce((sum, split) => sum + split.principal, 0),
       isNewOrigination: false,
     });
+  } else {
+    for (const liability of portfolio.liabilities) {
+      if (liability.type !== "mortgage") continue;
+      const startDate = new Date(`${liability.startDate}T00:00:00`);
+      const workingSplits = liability.splits.map((split) => buildWorkingSplit(
+        split,
+        scenario,
+        startDate,
+        liability.frequency,
+        currentYear,
+        refinanceEvents.filter((event) => event.splitId === split.id),
+        increaseEvents.filter((event) => event.splitId === split.id),
+      ));
+      const input = toMortgageInput({ ...liability, splits: workingSplits }, portfolio.assets);
+      const result = MortgageEngine.simulate(input);
+      mortgages.push({
+        propertyId: liability.propertyId,
+        series: combineSeries(result.splits.map((split) => annualSeriesForSchedule(split.schedule))),
+        activeFromYear: 0,
+        activeToYear: projectionYears + 1,
+        originalPrincipal: liability.splits.reduce((sum, split) => sum + split.principal, 0),
+        isNewOrigination: false,
+      });
+    }
   }
 
   const oneOffCashByYear = new Map<number, number>();

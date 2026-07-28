@@ -43,10 +43,16 @@ export function ScenarioDetail({ portfolio, scenario, onChange, onBack }: Scenar
       .map((event) => ({ id: buyEventPropertyId(event), label: `${event.propertyName} (bought year ${event.year})` })),
   ];
 
+  const selectedMortgageScenario = assumptions.mortgageScenarioId
+    ? portfolio.mortgageScenarios.find((candidate) => candidate.id === assumptions.mortgageScenarioId)
+    : undefined;
+
   const availableSplits: NamedOption[] = [
-    ...portfolio.liabilities.flatMap((liability) => liability.type === "mortgage"
-      ? liability.splits.map((split) => ({ id: split.id, label: `${liability.name} — ${split.name}` }))
-      : []),
+    ...(selectedMortgageScenario
+      ? selectedMortgageScenario.splits.map((split) => ({ id: split.id, label: `${selectedMortgageScenario.name} — ${split.name}` }))
+      : portfolio.liabilities.flatMap((liability) => liability.type === "mortgage"
+        ? liability.splits.map((split) => ({ id: split.id, label: `${liability.name} — ${split.name}` }))
+        : [])),
     ...events.filter((event): event is BuyPropertyEvent => event.type === "buy-property")
       .map((event) => ({ id: buyEventSplitId(event), label: `${event.propertyName} loan (bought year ${event.year})` })),
   ];
@@ -123,6 +129,23 @@ export function ScenarioDetail({ portfolio, scenario, onChange, onBack }: Scenar
             </span>
           )}
         </label>
+        <label className="rate-type">
+          <span>Forecast mortgage debt using</span>
+          <select
+            value={assumptions.mortgageScenarioId ?? ""}
+            onChange={(event) => updateAssumptions({ mortgageScenarioId: event.target.value || undefined })}
+          >
+            <option value="">Current portfolio</option>
+            {portfolio.mortgageScenarios.map((mortgageScenario) => (
+              <option key={mortgageScenario.id} value={mortgageScenario.id}>{mortgageScenario.name}</option>
+            ))}
+          </select>
+        </label>
+        {selectedMortgageScenario && (
+          <p className="muted">
+            Forecasting against the "{selectedMortgageScenario.name}" Mortgage Lab scenario instead of your real mortgage(s). Refinance and increase-repayments events above target this scenario's own splits.
+          </p>
+        )}
       </section>
 
       <section className="calculator other-mortgages">

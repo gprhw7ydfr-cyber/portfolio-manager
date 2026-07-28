@@ -1,18 +1,15 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { usePortfolio } from "../../store/usePortfolio";
 import type { Portfolio } from "../../domain/portfolio/Portfolio";
 import type { MortgageScenario } from "../../domain/mortgage/MortgageScenario";
 import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability";
 import { isPropertyAsset, type PropertyAsset } from "../../domain/property/PropertyAsset";
 import { isCashAccount } from "../../domain/cash/CashAccount";
-import { applyMortgageStrategy } from "../../domain/mortgage/applyMortgageStrategy";
 import { createMortgageLiabilityFromStructure } from "../../domain/mortgage/createMortgageLiabilityFromStructure";
 import { calculateDashboardStats, type DashboardStats } from "../../domain/dashboard/calculateDashboardStats";
 import { formatMoney } from "../../domain/shared/formatMoney";
 import { MortgagePanel } from "../mortgage/MortgagePanel";
 import { MortgageScenarioComparison } from "./MortgageScenarioComparison";
-import { MortgageStrategyList } from "./MortgageStrategyList";
-import { MortgageStrategyComparison } from "./MortgageStrategyComparison";
 
 interface MortgageScenarioDetailProps {
   portfolio: Portfolio;
@@ -35,29 +32,20 @@ export function MortgageScenarioDetail({ portfolio, scenario, onChange, onBack }
   const [, setPortfolio] = usePortfolio();
   const cashAccounts = portfolio.assets.filter(isCashAccount);
   const properties = portfolio.assets.filter(isPropertyAsset);
-  const strategies = useMemo(
-    () => portfolio.mortgageStrategies.filter((strategy) => strategy.scenarioId === scenario.id),
-    [portfolio.mortgageStrategies, scenario.id],
-  );
 
   const [attachPropertyId, setAttachPropertyId] = useState("");
-  const [attachStrategyId, setAttachStrategyId] = useState("");
   const [attachPreview, setAttachPreview] = useState<AttachPreview | null>(null);
   const [attachedMessage, setAttachedMessage] = useState<string | null>(null);
-
-  const selectedStrategy = strategies.find((strategy) => strategy.id === attachStrategyId);
 
   const previewAttach = () => {
     const property = properties.find((candidate) => candidate.id === attachPropertyId);
     if (!property) return;
 
-    const finalStructure = selectedStrategy ? applyMortgageStrategy(scenario, selectedStrategy, cashAccounts) : scenario;
     const existingMortgage = portfolio.liabilities.find(
       (liability) => liability.type === "mortgage" && liability.propertyId === property.id,
     );
-    const newLiability = createMortgageLiabilityFromStructure(finalStructure, property.ownership, property.id, {
+    const newLiability = createMortgageLiabilityFromStructure(scenario, property.ownership, property.id, {
       sourceScenarioId: scenario.id,
-      sourceStrategyId: selectedStrategy?.id,
     });
     const hypotheticalLiabilities = [
       ...portfolio.liabilities.filter((liability) => liability.id !== existingMortgage?.id),
@@ -88,7 +76,6 @@ export function MortgageScenarioDetail({ portfolio, scenario, onChange, onBack }
     setAttachedMessage(`Attached to ${attachPreview.property.name}. View it under Properties.`);
     setAttachPreview(null);
     setAttachPropertyId("");
-    setAttachStrategyId("");
   };
 
   return (
@@ -121,10 +108,6 @@ export function MortgageScenarioDetail({ portfolio, scenario, onChange, onBack }
 
       <MortgageScenarioComparison portfolio={portfolio} scenario={scenario} assets={cashAccounts} />
 
-      <MortgageStrategyList scenario={scenario} strategies={strategies} />
-
-      <MortgageStrategyComparison scenario={scenario} strategies={strategies} assets={cashAccounts} />
-
       <div className="property-section mortgage-attach">
         <div className="property-section__heading">
           <div>
@@ -144,15 +127,6 @@ export function MortgageScenarioDetail({ portfolio, scenario, onChange, onBack }
                   {properties.map((property) => <option key={property.id} value={property.id}>{property.name}</option>)}
                 </select>
               </label>
-              {strategies.length > 0 && (
-                <label className="rate-type">
-                  <span>Strategy</span>
-                  <select value={attachStrategyId} onChange={(event) => { setAttachStrategyId(event.target.value); setAttachPreview(null); }}>
-                    <option value="">Scenario as-is (no strategy)</option>
-                    {strategies.map((strategy) => <option key={strategy.id} value={strategy.id}>{strategy.name}</option>)}
-                  </select>
-                </label>
-              )}
             </div>
             <button className="button button--secondary" disabled={!attachPropertyId} onClick={previewAttach}>Preview attach</button>
 

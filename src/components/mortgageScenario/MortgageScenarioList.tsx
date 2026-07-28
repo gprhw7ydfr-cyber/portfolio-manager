@@ -25,7 +25,6 @@ export function MortgageScenarioList() {
     setPortfolio((current) => ({
       ...current,
       mortgageScenarios: current.mortgageScenarios.filter((scenario) => scenario.id !== id),
-      mortgageStrategies: current.mortgageStrategies.filter((strategy) => strategy.scenarioId !== id),
     }));
     setSelectedScenarioId(null);
   };

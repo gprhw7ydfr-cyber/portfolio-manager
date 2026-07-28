@@ -283,7 +283,6 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
             {attachedMortgage.sourceScenarioId && (
               <p className="muted">
                 Built from Mortgage Lab scenario: {portfolio.mortgageScenarios.find((scenario) => scenario.id === attachedMortgage.sourceScenarioId)?.name ?? "(deleted)"}
-                {attachedMortgage.sourceStrategyId && ` — strategy: ${portfolio.mortgageStrategies.find((strategy) => strategy.id === attachedMortgage.sourceStrategyId)?.name ?? "(deleted)"}`}
               </p>
             )}
             <MortgagePanel

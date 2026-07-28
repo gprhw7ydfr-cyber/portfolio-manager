@@ -6,12 +6,11 @@ export interface CreateMortgageLiabilityOptions {
   name?: string;
   lender?: string;
   sourceScenarioId?: string;
-  sourceStrategyId?: string;
 }
 
 /** Materialises a `MortgageStructure` (a `MortgageLiability` itself, or a saved Mortgage Lab
- *  scenario/strategy result) into a brand-new, independent `MortgageLiability` attached to
- *  `propertyId` — a copy, not a live link back to whatever produced `structure`. */
+ *  scenario) into a brand-new, independent `MortgageLiability` attached to `propertyId` —
+ *  a copy, not a live link back to whatever produced `structure`. */
 export function createMortgageLiabilityFromStructure(
   structure: MortgageStructure,
   ownership: OwnershipStake[],
@@ -29,6 +28,5 @@ export function createMortgageLiabilityFromStructure(
     startDate: structure.startDate,
     splits: structure.splits,
     sourceScenarioId: options?.sourceScenarioId,
-    sourceStrategyId: options?.sourceStrategyId,
   };
 }

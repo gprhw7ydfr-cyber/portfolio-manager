@@ -21,7 +21,6 @@ export function loadPortfolio(): Portfolio | undefined {
       ...stored.portfolio,
       scenarios: stored.portfolio.scenarios ?? [],
       mortgageScenarios: stored.portfolio.mortgageScenarios ?? [],
-      mortgageStrategies: stored.portfolio.mortgageStrategies ?? [],
     };
   } catch {
     return undefined;

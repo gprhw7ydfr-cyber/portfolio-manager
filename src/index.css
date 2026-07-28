@@ -313,7 +313,6 @@ select { border: 1px solid var(--border-input); border-radius: 9px; padding: 10p
 .mortgage-scenario-comparison__picker { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 18px; }
 .mortgage-scenario-comparison__picker label { display: flex; align-items: center; gap: 6px; font-size: .84rem; color: var(--ink-secondary); }
 .mortgage-scenario-comparison__picker input[type="checkbox"] { width: 15px; height: 15px; }
-.mortgage-strategy-row { margin-top: 4px; }
 .mortgage-attach { margin-top: 4px; }
 @media (max-width: 720px) { main { padding: 25px 16px 40px; } .app-header, .calculator__heading, .split-card__header, .property-detail__heading { align-items: start; flex-direction: column; } .split-card__actions { justify-content: start; } .split-card__body { grid-template-columns: 1fr; } .frequency-control { width: 100%; } select { width: 100%; } }
 @media (max-width: 720px) { .payment-rule { grid-template-columns: 1fr 1fr; } .payment-rule strong { grid-column: 1 / -1; padding: 0; } .payment-rule__delete { grid-column: 2; justify-self: end; } }

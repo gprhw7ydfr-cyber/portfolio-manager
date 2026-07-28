@@ -11,6 +11,10 @@ export interface ScenarioAssumptions {
   /** Flat annual % applied to every mortgage split for the whole projection, overriding
    *  each split's own rate and fixed-rate schedule — a simplification, not a refix simulator. */
   mortgageRateOverride?: number;
+  /** Forecast mortgage debt using this saved Mortgage Lab scenario's structure instead of the
+   *  portfolio's real attached mortgage(s) — replaces the portfolio's entire real mortgage debt
+   *  for this projection, not a per-property merge. Undefined = the real portfolio, as before. */
+  mortgageScenarioId?: string;
 }
 
 export interface Scenario {

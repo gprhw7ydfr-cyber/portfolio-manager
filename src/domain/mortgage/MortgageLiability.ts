@@ -15,8 +15,7 @@ export interface MortgageLiability extends LiabilityBase {
   splits: MortgageSplit[];
 
   /** Traceability only, from the Mortgage Lab's "attach" step — a one-time copy, not a live link.
-   *  Editing this liability afterward never updates the saved scenario/strategy, and vice versa.
-   *  May point at a scenario/strategy that's since been deleted; lookups should degrade gracefully. */
+   *  Editing this liability afterward never updates the saved scenario, and vice versa. May point
+   *  at a scenario that's since been deleted; lookups should degrade gracefully. */
   sourceScenarioId?: string;
-  sourceStrategyId?: string;
 }
