@@ -17,20 +17,24 @@ import { ReportView } from "./ReportView";
 
 type ReportKind = "portfolio-summary" | "mortgage" | "property" | "cash-flow" | "net-worth" | "strategy-comparison" | "mortgage-scenario-comparison";
 
+const MAX_COMPARISON_CANDIDATES = 3;
+
 const REPORT_CARDS: { kind: ReportKind; title: string; description: string }[] = [
   { kind: "portfolio-summary", title: "Portfolio Summary", description: "Net worth, cash flow, and interest at a glance." },
   { kind: "mortgage", title: "Mortgage Report", description: "Rates, repayments, and payoff dates per split." },
   { kind: "property", title: "Property Report", description: "Value, income, expenses, and improvements." },
   { kind: "cash-flow", title: "Cash Flow Report", description: "Income and expenses at every frequency." },
   { kind: "net-worth", title: "Net Worth Report", description: "Today's net worth, broken down by property and account." },
-  { kind: "strategy-comparison", title: "Strategy Comparison", description: "Baseline vs. a saved strategy." },
-  { kind: "mortgage-scenario-comparison", title: "Mortgage Scenario Comparison", description: "A Mortgage Lab scenario vs. its own strategies." },
+  { kind: "strategy-comparison", title: "Strategy Comparison", description: "Baseline vs. up to 3 saved strategies." },
+  { kind: "mortgage-scenario-comparison", title: "Mortgage Scenario Comparison", description: "Compare up to 3 saved mortgage scenarios." },
 ];
 
 export function ReportsHome() {
   const [portfolio] = usePortfolio();
   const [report, setReport] = useState<ReportData | null>(null);
   const [picker, setPicker] = useState<ReportKind | null>(null);
+  const [selectedScenarioIds, setSelectedScenarioIds] = useState<string[]>([]);
+  const [selectedMortgageScenarioIds, setSelectedMortgageScenarioIds] = useState<string[]>([]);
 
   const mortgages = portfolio.liabilities.filter((liability): liability is MortgageLiability => liability.type === "mortgage");
   const properties = portfolio.assets.filter(isPropertyAsset);
@@ -47,14 +51,33 @@ export function ReportsHome() {
     setReport(buildPropertyReport(property, attached, portfolio.assets));
     setPicker(null);
   };
-  const openStrategyReport = (scenario: Scenario) => {
-    setReport(buildStrategyComparisonReport(portfolio, scenario));
+  const openStrategyReport = (selected: Scenario[]) => {
+    setReport(buildStrategyComparisonReport(portfolio, selected));
     setPicker(null);
+    setSelectedScenarioIds([]);
   };
-  const openMortgageScenarioReport = (scenario: MortgageScenario) => {
-    const strategies = portfolio.mortgageStrategies.filter((strategy) => strategy.scenarioId === scenario.id);
-    setReport(buildMortgageScenarioComparisonReport(scenario, strategies, cashAccounts));
+  const openMortgageScenarioReport = (selected: MortgageScenario[]) => {
+    setReport(buildMortgageScenarioComparisonReport(
+      selected.map((scenario) => ({ label: scenario.name, structure: scenario })),
+      cashAccounts,
+    ));
     setPicker(null);
+    setSelectedMortgageScenarioIds([]);
+  };
+
+  const toggleScenario = (id: string) => {
+    setSelectedScenarioIds((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id);
+      if (current.length >= MAX_COMPARISON_CANDIDATES) return current;
+      return [...current, id];
+    });
+  };
+  const toggleMortgageScenario = (id: string) => {
+    setSelectedMortgageScenarioIds((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id);
+      if (current.length >= MAX_COMPARISON_CANDIDATES) return current;
+      return [...current, id];
+    });
   };
 
   const handleCardClick = (kind: ReportKind) => {
@@ -68,10 +91,10 @@ export function ReportsHome() {
       if (properties.length === 1) openPropertyReport(properties[0]);
       else setPicker("property");
     } else if (kind === "strategy-comparison") {
-      if (scenarios.length === 1) openStrategyReport(scenarios[0]);
+      if (scenarios.length === 1) openStrategyReport([scenarios[0]]);
       else setPicker("strategy-comparison");
     } else if (kind === "mortgage-scenario-comparison") {
-      if (mortgageScenarios.length === 1) openMortgageScenarioReport(mortgageScenarios[0]);
+      if (mortgageScenarios.length === 1) openMortgageScenarioReport([mortgageScenarios[0]]);
       else setPicker("mortgage-scenario-comparison");
     }
   };
@@ -130,15 +153,29 @@ export function ReportsHome() {
     return (
       <div className="reports-home">
         <button className="text-button" onClick={() => setPicker(null)}>&larr; Back to reports</button>
-        <div className="calculator__heading"><div><p className="eyebrow">Strategy Comparison</p><h2>Choose a strategy.</h2></div></div>
-        <div className="property-grid-list">
+        <div className="calculator__heading"><div><p className="eyebrow">Strategy Comparison</p><h2>Choose up to 3 strategies.</h2></div></div>
+        <ul className="mortgage-scenario-comparison__picker">
           {scenarios.map((scenario) => (
-            <button type="button" className="property-card" key={scenario.id} onClick={() => openStrategyReport(scenario)}>
-              <h3>{scenario.name}</h3>
-              <p className="muted">{scenario.assumptions.projectionYears}-year plan</p>
-            </button>
+            <li key={scenario.id}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={selectedScenarioIds.includes(scenario.id)}
+                  disabled={!selectedScenarioIds.includes(scenario.id) && selectedScenarioIds.length >= MAX_COMPARISON_CANDIDATES}
+                  onChange={() => toggleScenario(scenario.id)}
+                />
+                {scenario.name} ({scenario.assumptions.projectionYears}-year plan)
+              </label>
+            </li>
           ))}
-        </div>
+        </ul>
+        <button
+          className="button button--secondary"
+          disabled={selectedScenarioIds.length === 0}
+          onClick={() => openStrategyReport(scenarios.filter((scenario) => selectedScenarioIds.includes(scenario.id)))}
+        >
+          Generate report ({selectedScenarioIds.length} selected)
+        </button>
       </div>
     );
   }
@@ -147,15 +184,29 @@ export function ReportsHome() {
     return (
       <div className="reports-home">
         <button className="text-button" onClick={() => setPicker(null)}>&larr; Back to reports</button>
-        <div className="calculator__heading"><div><p className="eyebrow">Mortgage Scenario Comparison</p><h2>Choose a scenario.</h2></div></div>
-        <div className="property-grid-list">
+        <div className="calculator__heading"><div><p className="eyebrow">Mortgage Scenario Comparison</p><h2>Choose up to 3 scenarios.</h2></div></div>
+        <ul className="mortgage-scenario-comparison__picker">
           {mortgageScenarios.map((scenario) => (
-            <button type="button" className="property-card" key={scenario.id} onClick={() => openMortgageScenarioReport(scenario)}>
-              <h3>{scenario.name}</h3>
-              <p className="muted">{scenario.splits.length} split{scenario.splits.length === 1 ? "" : "s"}</p>
-            </button>
+            <li key={scenario.id}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={selectedMortgageScenarioIds.includes(scenario.id)}
+                  disabled={!selectedMortgageScenarioIds.includes(scenario.id) && selectedMortgageScenarioIds.length >= MAX_COMPARISON_CANDIDATES}
+                  onChange={() => toggleMortgageScenario(scenario.id)}
+                />
+                {scenario.name} ({scenario.splits.length} split{scenario.splits.length === 1 ? "" : "s"})
+              </label>
+            </li>
           ))}
-        </div>
+        </ul>
+        <button
+          className="button button--secondary"
+          disabled={selectedMortgageScenarioIds.length === 0}
+          onClick={() => openMortgageScenarioReport(mortgageScenarios.filter((scenario) => selectedMortgageScenarioIds.includes(scenario.id)))}
+        >
+          Generate report ({selectedMortgageScenarioIds.length} selected)
+        </button>
       </div>
     );
   }

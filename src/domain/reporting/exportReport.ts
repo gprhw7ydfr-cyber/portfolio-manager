@@ -10,6 +10,13 @@ export function reportToCsv(report: ReportData): string {
     for (const row of section.rows) {
       lines.push([section.heading, row.label, row.value].map(csvField).join(","));
     }
+    if (section.table) {
+      for (const row of section.table.rows) {
+        section.table.columns.forEach((column, index) => {
+          lines.push([section.heading, `${row.label} — ${column}`, row.values[index] ?? ""].map(csvField).join(","));
+        });
+      }
+    }
   }
   return lines.join("\r\n");
 }

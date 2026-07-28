@@ -1,12 +1,14 @@
 import type { Portfolio } from "../portfolio/Portfolio";
 import type { ReportData } from "./ReportData";
 import { calculateDashboardStats } from "../dashboard/calculateDashboardStats";
+import { calculateDashboardCharts } from "../dashboard/calculateDashboardCharts";
 import { formatMoney } from "../shared/formatMoney";
 
 const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
 
 export function buildPortfolioSummaryReport(portfolio: Portfolio, asOf: Date = new Date()): ReportData {
   const stats = calculateDashboardStats(portfolio, asOf);
+  const charts = calculateDashboardCharts(portfolio);
 
   return {
     title: "Portfolio Summary",
@@ -24,6 +26,7 @@ export function buildPortfolioSummaryReport(portfolio: Portfolio, asOf: Date = n
           { label: "Total equity", value: formatMoney(stats.totalEquity) },
           { label: "Loan-to-value ratio", value: percent(stats.loanToValueRatio) },
         ],
+        chart: charts.assetAllocation.length > 0 ? { kind: "allocation", slices: charts.assetAllocation } : undefined,
       },
       {
         heading: "Cash flow",
@@ -41,6 +44,14 @@ export function buildPortfolioSummaryReport(portfolio: Portfolio, asOf: Date = n
           { label: "Forecast interest remaining", value: formatMoney(stats.forecastInterestRemaining) },
           { label: "Portfolio return (gross rental yield)", value: percent(stats.portfolioReturn) },
         ],
+        chart: charts.loanBalanceSeries.length > 0 ? {
+          kind: "trend",
+          seriesLabel: "Mortgage",
+          series: [
+            { label: "Loan balance", points: charts.loanBalanceSeries },
+            { label: "Interest paid", points: charts.interestPaidSeries },
+          ],
+        } : undefined,
       },
     ],
   };

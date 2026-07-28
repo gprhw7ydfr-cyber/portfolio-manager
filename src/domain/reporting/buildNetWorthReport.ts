@@ -23,18 +23,22 @@ export function buildNetWorthReport(portfolio: Portfolio, asOf: Date = new Date(
   }
 
   const properties = portfolio.assets.filter(isPropertyAsset);
+  const propertyEquity = properties.map((property) => ({
+    label: property.name,
+    value: property.currentValue - (mortgageDebtByPropertyId.get(property.id) ?? 0),
+  }));
   const propertySection: ReportSection = {
     heading: "Property equity",
-    rows: properties.map((property) => {
-      const debt = mortgageDebtByPropertyId.get(property.id) ?? 0;
-      return { label: property.name, value: formatMoney(property.currentValue - debt) };
-    }),
+    rows: propertyEquity.map((entry) => ({ label: entry.label, value: formatMoney(entry.value) })),
+    chart: { kind: "bar", values: propertyEquity },
   };
 
   const cashAccounts = portfolio.assets.filter(isCashAccount);
+  const cashValues = cashAccounts.map((account) => ({ label: account.name, value: account.currentValue }));
   const cashSection: ReportSection = {
     heading: "Cash accounts",
-    rows: cashAccounts.map((account) => ({ label: account.name, value: formatMoney(account.currentValue) })),
+    rows: cashValues.map((entry) => ({ label: entry.label, value: formatMoney(entry.value) })),
+    chart: { kind: "bar", values: cashValues },
   };
 
   return {

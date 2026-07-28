@@ -4,6 +4,8 @@ import type { Asset } from "../asset/Asset";
 import type { ReportData, ReportSection } from "./ReportData";
 import { toMortgageInput } from "../mortgage/toMortgageInput";
 import { MortgageEngine } from "../../engines/MortgageEngine";
+import { combineSchedules } from "../mortgage/amortizationDetail";
+import { annualSeriesForSchedule } from "../mortgage/annualSeries";
 import { formatMoney } from "../shared/formatMoney";
 
 const typeLabel: Record<PropertyType, string> = {
@@ -67,6 +69,8 @@ export function buildPropertyReport(
 
   if (attachedMortgage) {
     const summary = MortgageEngine.simulate(toMortgageInput(attachedMortgage, assets));
+    const combinedSchedule = combineSchedules(summary.splits.map((split) => split.schedule));
+    const annualSeries = annualSeriesForSchedule(combinedSchedule);
     sections.push({
       heading: "Mortgage",
       rows: [
@@ -74,6 +78,14 @@ export function buildPropertyReport(
         { label: "Regular repayment", value: formatMoney(summary.repayment) },
         { label: "Total interest", value: formatMoney(summary.totalInterest) },
       ],
+      chart: annualSeries.length > 0 ? {
+        kind: "trend",
+        seriesLabel: "Mortgage",
+        series: [
+          { label: "Loan balance", points: annualSeries.map((point) => ({ year: point.year, value: point.closingBalance })) },
+          { label: "Cumulative interest", points: annualSeries.map((point) => ({ year: point.year, value: point.cumulativeInterest })) },
+        ],
+      } : undefined,
     });
   }
 

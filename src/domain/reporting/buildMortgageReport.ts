@@ -1,8 +1,10 @@
 import type { MortgageLiability } from "../mortgage/MortgageLiability";
 import type { Asset } from "../asset/Asset";
-import type { ReportData, ReportSection } from "./ReportData";
+import type { ReportData, ReportSection, ReportChart } from "./ReportData";
 import { toMortgageInput } from "../mortgage/toMortgageInput";
 import { MortgageEngine } from "../../engines/MortgageEngine";
+import { combineSchedules } from "../mortgage/amortizationDetail";
+import { annualSeriesForSchedule } from "../mortgage/annualSeries";
 import { formatMoney } from "../shared/formatMoney";
 
 const formatDate = (date: Date | undefined) => date ? date.toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" }) : "—";
@@ -26,6 +28,17 @@ export function buildMortgageReport(liability: MortgageLiability, assets: Asset[
     };
   });
 
+  const combinedSchedule = combineSchedules(summary.splits.map((split) => split.schedule));
+  const annualSeries = annualSeriesForSchedule(combinedSchedule);
+  const chart: ReportChart | undefined = annualSeries.length > 0 ? {
+    kind: "trend",
+    seriesLabel: "Mortgage",
+    series: [
+      { label: "Loan balance", points: annualSeries.map((point) => ({ year: point.year, value: point.closingBalance })) },
+      { label: "Cumulative interest", points: annualSeries.map((point) => ({ year: point.year, value: point.cumulativeInterest })) },
+    ],
+  } : undefined;
+
   return {
     title: `Mortgage Report — ${liability.name}`,
     generatedAt: asOf.toISOString(),
@@ -39,6 +52,7 @@ export function buildMortgageReport(liability: MortgageLiability, assets: Asset[
           { label: "Total interest (all splits)", value: formatMoney(summary.totalInterest) },
           { label: "Loan completion date", value: formatDate(summary.payoffDate) },
         ],
+        chart,
       },
       ...splitSections,
     ],

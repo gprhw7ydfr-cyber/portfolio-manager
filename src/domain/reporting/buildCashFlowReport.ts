@@ -22,7 +22,17 @@ export function buildCashFlowReport(portfolio: Portfolio, asOf: Date = new Date(
     sections: [
       rowSection("Income", cashFlow.income),
       rowSection("Expenses", cashFlow.expenses),
-      rowSection("Net", cashFlow.net),
+      {
+        ...rowSection("Net", cashFlow.net),
+        chart: {
+          kind: "bar",
+          values: [
+            { label: "Income", value: cashFlow.income.monthly },
+            { label: "Expenses", value: cashFlow.expenses.monthly },
+            { label: "Net", value: cashFlow.net.monthly },
+          ],
+        },
+      },
     ],
   };
 }

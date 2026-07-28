@@ -1,5 +1,10 @@
 import type { ReportData } from "../../domain/reporting/ReportData";
 import { reportToCsv, reportToJson, downloadFile, slugifyFilename } from "../../domain/reporting/exportReport";
+import { MultiSeriesTrendChart } from "../scenario/MultiSeriesTrendChart";
+import { PropertyValuesChart } from "../dashboard/PropertyValuesChart";
+import { AssetAllocationChart } from "../dashboard/AssetAllocationChart";
+import { getCategorical } from "../dashboard/chartPalette";
+import { useTheme } from "../../store/useTheme";
 
 interface ReportViewProps {
   report: ReportData;
@@ -7,6 +12,8 @@ interface ReportViewProps {
 }
 
 export function ReportView({ report, onBack }: ReportViewProps) {
+  const [theme] = useTheme();
+  const paletteColors = Object.values(getCategorical(theme));
   const filename = slugifyFilename(report.title);
   const generatedAt = new Date(report.generatedAt).toLocaleString("en-NZ");
 
@@ -33,16 +40,48 @@ export function ReportView({ report, onBack }: ReportViewProps) {
       {report.sections.map((section) => (
         <section className="property-section report-section" key={section.heading}>
           <h4>{section.heading}</h4>
-          <table className="report-table">
-            <tbody>
-              {section.rows.map((row) => (
-                <tr key={row.label}>
-                  <th>{row.label}</th>
-                  <td>{row.value}</td>
+          {section.rows.length > 0 && (
+            <table className="report-table">
+              <tbody>
+                {section.rows.map((row) => (
+                  <tr key={row.label}>
+                    <th>{row.label}</th>
+                    <td>{row.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {section.table && (
+            <table className="report-table report-table--comparison">
+              <thead>
+                <tr>
+                  <th></th>
+                  {section.table.columns.map((column) => <th key={column}>{column}</th>)}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {section.table.rows.map((row) => (
+                  <tr key={row.label}>
+                    <th>{row.label}</th>
+                    {row.values.map((value, index) => <td key={index}>{value}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {section.chart?.kind === "trend" && (
+            <MultiSeriesTrendChart
+              seriesLabel={section.chart.seriesLabel}
+              series={section.chart.series.map((series, index) => ({
+                label: series.label,
+                color: paletteColors[index % paletteColors.length],
+                points: series.points,
+              }))}
+            />
+          )}
+          {section.chart?.kind === "bar" && <PropertyValuesChart properties={section.chart.values} />}
+          {section.chart?.kind === "allocation" && <AssetAllocationChart slices={section.chart.slices} />}
         </section>
       ))}
     </div>
