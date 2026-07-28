@@ -50,18 +50,12 @@ export function Dashboard() {
           <ResultCard emphasis label="Net worth" value={formatMoney(stats.netWorth)} />
           <ResultCard label="Total assets" value={formatMoney(stats.totalAssets)} />
           <ResultCard label="Total liabilities" value={formatMoney(stats.totalLiabilities)} />
-          <ResultCard label="Total mortgage debt" value={formatMoney(stats.totalMortgageDebt)} supportingText="Only liability type today" />
-          <ResultCard label="Total offset balance" value={formatMoney(stats.totalOffsetBalance)} />
           <ResultCard label="Total cash" value={formatMoney(stats.totalCash)} />
           <ResultCard label="Total equity" value={formatMoney(stats.totalEquity)} supportingText="Property value less mortgage debt" />
           <ResultCard label="Loan-to-value ratio" value={percent(stats.loanToValueRatio)} />
-          <ResultCard label="Weekly cash flow" value={formatMoney(stats.weeklyCashFlow)} />
-          <ResultCard label="Monthly cash flow" value={formatMoney(stats.monthlyCashFlow)} />
-          <ResultCard label="Annual cash flow" value={formatMoney(stats.annualCashFlow)} />
           <ResultCard label="Total interest paid" value={formatMoney(stats.totalInterestPaid)} supportingText="To date" />
           <ResultCard label="Forecast interest remaining" value={formatMoney(stats.forecastInterestRemaining)} />
           <ResultCard label="Portfolio return" value={percent(stats.portfolioReturn)} supportingText="Gross rental yield" />
-          <ResultCard label="Passive income" value={formatMoney(stats.passiveIncomeAnnual)} supportingText="Property income per year" />
         </div>
       </section>
 
@@ -81,20 +75,6 @@ export function Dashboard() {
           <div><p className="eyebrow">Properties</p><h2>Property values.</h2></div>
         </div>
         <PropertyValuesChart properties={charts.propertyValues} />
-      </section>
-
-      <section className="calculator other-mortgages">
-        <div className="calculator__heading">
-          <div><p className="eyebrow">Mortgages</p><h2>Loan balance over time.</h2></div>
-        </div>
-        <TrendLineChart points={charts.loanBalanceSeries} color={categorical.blue} seriesLabel="Loan balance" />
-      </section>
-
-      <section className="calculator other-mortgages">
-        <div className="calculator__heading">
-          <div><p className="eyebrow">Mortgages</p><h2>Interest paid over time.</h2></div>
-        </div>
-        <TrendLineChart points={charts.interestPaidSeries} color={categorical.orange} seriesLabel="Cumulative interest paid" />
       </section>
 
       <section className="calculator other-mortgages">

@@ -6,10 +6,14 @@ import { createDefaultProperty } from "../../domain/property/createDefaultProper
 import { isCashAccount } from "../../domain/cash/CashAccount";
 import { createDefaultCashAccount } from "../../domain/cash/createDefaultCashAccount";
 import { calculateCashFlow } from "../../domain/cashflow/calculateCashFlow";
+import { calculateDashboardCharts } from "../../domain/dashboard/calculateDashboardCharts";
 import type { CashAccount } from "../../domain/cash/CashAccount";
 import { PropertyCard } from "./PropertyCard";
 import { CashAccountCard } from "../cash/CashAccountCard";
 import { CashFlowSummaryCard } from "../cashflow/CashFlowSummaryCard";
+import { TrendLineChart } from "../dashboard/TrendLineChart";
+import { getCategorical } from "../dashboard/chartPalette";
+import { useTheme } from "../../store/useTheme";
 
 interface PropertyListProps {
   onSelectProperty: (id: string) => void;
@@ -17,10 +21,13 @@ interface PropertyListProps {
 
 export function PropertyList({ onSelectProperty }: PropertyListProps) {
   const [portfolio, setPortfolio] = usePortfolio();
+  const [theme] = useTheme();
+  const categorical = getCategorical(theme);
 
   const properties = portfolio.assets.filter(isPropertyAsset);
   const cashAccounts = portfolio.assets.filter(isCashAccount);
   const cashFlowSummary = useMemo(() => calculateCashFlow(portfolio), [portfolio]);
+  const charts = useMemo(() => calculateDashboardCharts(portfolio), [portfolio]);
 
   const ownership = portfolio.entities.length > 0
     ? [{ entityId: portfolio.entities[0].id, percentage: 100 }]
@@ -105,6 +112,20 @@ export function PropertyList({ onSelectProperty }: PropertyListProps) {
           </div>
         </div>
         <CashFlowSummaryCard summary={cashFlowSummary} />
+      </section>
+
+      <section className="calculator other-mortgages">
+        <div className="calculator__heading">
+          <div><p className="eyebrow">Mortgages</p><h2>Loan balance over time.</h2></div>
+        </div>
+        <TrendLineChart points={charts.loanBalanceSeries} color={categorical.blue} seriesLabel="Loan balance" />
+      </section>
+
+      <section className="calculator other-mortgages">
+        <div className="calculator__heading">
+          <div><p className="eyebrow">Mortgages</p><h2>Interest paid over time.</h2></div>
+        </div>
+        <TrendLineChart points={charts.interestPaidSeries} color={categorical.orange} seriesLabel="Cumulative interest paid" />
       </section>
     </div>
   );
