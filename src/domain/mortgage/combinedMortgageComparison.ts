@@ -1,4 +1,4 @@
-import type { MortgageLiability } from "./MortgageLiability";
+import type { MortgageStructure } from "./MortgageStructure";
 import type { Asset } from "../asset/Asset";
 import { toMortgageInput } from "./toMortgageInput";
 import { MortgageEngine } from "../../engines/MortgageEngine";
@@ -10,7 +10,9 @@ export interface CombinedMortgageTotals {
   payoffDate?: Date;
 }
 
-function totalsFor(mortgage: MortgageLiability, assets: Asset[]): CombinedMortgageTotals {
+/** Exported so `compareMortgageStructures.ts` (Mortgage Lab) can reuse the exact same
+ *  simulate-and-total logic instead of duplicating it. */
+export function totalsFor<T extends MortgageStructure>(mortgage: T, assets: Asset[]): CombinedMortgageTotals {
   const result = MortgageEngine.simulate(toMortgageInput(mortgage, assets));
   const combined = combineSchedules(result.splits.map((split) => split.schedule));
   return {
@@ -24,9 +26,9 @@ function totalsFor(mortgage: MortgageLiability, assets: Asset[]): CombinedMortga
  *  hypothetical version with extra-payment changes applied — "what does following this
  *  recommendation actually do to my overall loan?" reusing the same simulate + combineSchedules
  *  path as the amortization detail view, not a new calculation. */
-export function compareCombinedMortgage(
-  mortgage: MortgageLiability,
-  testMortgage: MortgageLiability,
+export function compareCombinedMortgage<T extends MortgageStructure>(
+  mortgage: T,
+  testMortgage: T,
   assets: Asset[],
 ): { baseline: CombinedMortgageTotals; withChanges: CombinedMortgageTotals } {
   return {

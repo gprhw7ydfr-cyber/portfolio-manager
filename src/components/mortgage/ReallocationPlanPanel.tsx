@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { planExtraPaymentReallocation, type ReallocationInterval, type ReallocationPlan } from "../../domain/mortgage/planExtraPaymentReallocation";
-import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability";
+import type { MortgageStructure } from "../../domain/mortgage/MortgageStructure";
 import type { Asset } from "../../domain/asset/Asset";
 import { annualSeriesForSchedule } from "../../domain/mortgage/annualSeries";
 import { formatMoney } from "../../domain/shared/formatMoney";
@@ -8,8 +8,8 @@ import { MultiSeriesTrendChart } from "../scenario/MultiSeriesTrendChart";
 import { getCategorical } from "../dashboard/chartPalette";
 import { useTheme } from "../../store/useTheme";
 
-interface ReallocationPlanPanelProps {
-  mortgage: MortgageLiability;
+interface ReallocationPlanPanelProps<T extends MortgageStructure> {
+  mortgage: T;
   assets: Asset[];
   testAmount: number;
   interval: ReallocationInterval;
@@ -30,7 +30,7 @@ function totalsFor(schedule: ReallocationPlan["combinedBaselineSchedule"]) {
   return { totalInterest, totalRepayment, payoffDate: last?.closingBalance === 0 ? last.paymentDate : undefined };
 }
 
-export function ReallocationPlanPanel({ mortgage, assets, testAmount, interval }: ReallocationPlanPanelProps) {
+export function ReallocationPlanPanel<T extends MortgageStructure>({ mortgage, assets, testAmount, interval }: ReallocationPlanPanelProps<T>) {
   const [plan, setPlan] = useState<ReallocationPlan | null>(null);
   const [isPlanning, setIsPlanning] = useState(false);
   const [theme] = useTheme();

@@ -4,7 +4,7 @@ import { toMortgageInput } from "../../domain/mortgage/toMortgageInput";
 import { createDefaultSplit } from "../../domain/mortgage/createDefaultSplit";
 import type { RepaymentFrequency } from "../../domain/mortgage/MortgageInput";
 import type { MortgageSplit } from "../../domain/mortgage/MortgageSplit";
-import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability";
+import type { MortgageStructure } from "../../domain/mortgage/MortgageStructure";
 import type { CashAccount } from "../../domain/cash/CashAccount";
 import { SplitCard } from "./SplitCard";
 import { SummaryCard } from "./SummaryCard";
@@ -12,21 +12,21 @@ import { ExtraPaymentAdvisor } from "./ExtraPaymentAdvisor";
 import { AmortizationDetail } from "./AmortizationDetail";
 import { combineSchedules } from "../../domain/mortgage/amortizationDetail";
 
-interface MortgagePanelProps {
-  mortgage: MortgageLiability;
+interface MortgagePanelProps<T extends MortgageStructure> {
+  mortgage: T;
   cashAccounts: CashAccount[];
-  onChange: (changes: Partial<MortgageLiability>) => void;
+  onChange: (changes: Partial<T>) => void;
   title?: string;
   subtitle?: string;
 }
 
-export function MortgagePanel({
+export function MortgagePanel<T extends MortgageStructure>({
   mortgage,
   cashAccounts,
   onChange,
   title = "Plan your lending, split by split.",
   subtitle = "Adjust each loan independently and see the combined position below.",
-}: MortgagePanelProps) {
+}: MortgagePanelProps<T>) {
   const result = useMemo(
     () => MortgageEngine.simulate(toMortgageInput(mortgage, cashAccounts)),
     [mortgage, cashAccounts],
@@ -37,7 +37,9 @@ export function MortgagePanel({
   );
 
   const updateSplits = (updater: (splits: MortgageSplit[]) => MortgageSplit[]) => {
-    onChange({ splits: updater(mortgage.splits) });
+    // Cast needed: TS can't see through the generic that { splits } alone is assignable to
+    // Partial<T> — safe here since `splits` has the identical declared type on every T.
+    onChange({ splits: updater(mortgage.splits) } as Partial<T>);
   };
 
   const updateSplit = (id: string, changes: Partial<MortgageSplit>) => {
@@ -80,7 +82,7 @@ export function MortgagePanel({
         <select
           value={mortgage.frequency}
           onChange={(e) =>
-            onChange({ frequency: e.target.value as RepaymentFrequency })
+            onChange({ frequency: e.target.value as RepaymentFrequency } as Partial<T>)
           }
         >
           <option value="weekly">Weekly</option>

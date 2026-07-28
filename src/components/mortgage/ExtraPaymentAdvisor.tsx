@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { recommendExtraPayment, buildExtraPaymentTestMortgage, type ExtraPaymentMode } from "../../domain/mortgage/recommendExtraPayment";
 import { compareCombinedMortgage } from "../../domain/mortgage/combinedMortgageComparison";
-import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability";
+import type { MortgageStructure } from "../../domain/mortgage/MortgageStructure";
 import type { Asset } from "../../domain/asset/Asset";
 import type { AnnualPoint } from "../../domain/dashboard/calculateDashboardCharts";
 import { annualSeriesForSchedule } from "../../domain/mortgage/annualSeries";
@@ -14,8 +14,8 @@ import { ReallocationPlanPanel } from "./ReallocationPlanPanel";
 
 const formatPayoffDate = (date?: Date) => date ? date.toLocaleDateString("en-NZ", { month: "short", year: "numeric" }) : "—";
 
-interface ExtraPaymentAdvisorProps {
-  mortgage: MortgageLiability;
+interface ExtraPaymentAdvisorProps<T extends MortgageStructure> {
+  mortgage: T;
   assets: Asset[];
 }
 
@@ -61,7 +61,7 @@ function extendSeries(points: AnnualPoint[], throughYear: number, pad: "zero" | 
   return [...points, ...extra];
 }
 
-export function ExtraPaymentAdvisor({ mortgage, assets }: ExtraPaymentAdvisorProps) {
+export function ExtraPaymentAdvisor<T extends MortgageStructure>({ mortgage, assets }: ExtraPaymentAdvisorProps<T>) {
   const [amount, setAmount] = useState(DEFAULT_TEST_AMOUNT);
   const [mode, setMode] = useState<ExtraPaymentMode>("lump-sum");
   const [selectedSplitId, setSelectedSplitId] = useState<string | null>(null);

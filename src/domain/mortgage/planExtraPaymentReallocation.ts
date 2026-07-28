@@ -1,4 +1,4 @@
-import type { MortgageLiability } from "./MortgageLiability";
+import type { MortgageStructure } from "./MortgageStructure";
 import type { Asset } from "../asset/Asset";
 import type { AmortizationPayment } from "./AmortizationPayment";
 import type { RecurringPayment, RecurringPaymentInterval } from "./RecurringPayment";
@@ -157,14 +157,16 @@ function projectSavingsValue(
 }
 
 /** Builds a hypothetical mortgage with every already-committed regime's bounded recurring payment
- *  applied, plus (optionally) one new candidate payment for evaluation. */
-function buildTestMortgage(
-  mortgage: MortgageLiability,
+ *  applied, plus (optionally) one new candidate payment for evaluation. Generic over
+ *  `MortgageLiability`/`MortgageScenario`-and-friends; the `as T` cast is safe because the only
+ *  field touched, `splits`, has the identical declared type on every `T`. */
+function buildTestMortgage<T extends MortgageStructure>(
+  mortgage: T,
   committed: Map<string, RecurringPayment[]>,
   testAmount: number,
   interval: ReallocationInterval,
   candidate?: { splitId: string; startDate: Date; endDate?: Date },
-): MortgageLiability {
+): T {
   return {
     ...mortgage,
     splits: mortgage.splits.map((split) => {
@@ -175,7 +177,7 @@ function buildTestMortgage(
       if (committedForSplit.length === 0 && candidatePayment.length === 0) return split;
       return { ...split, recurringPayments: [...(split.recurringPayments ?? []), ...committedForSplit, ...candidatePayment] };
     }),
-  };
+  } as T;
 }
 
 /** Plans where a recurring extra payment should go over the whole life of the loan, not just
@@ -184,8 +186,8 @@ function buildTestMortgage(
  *  not predicted). Each regime is evaluated by literally re-simulating the mortgage with that
  *  regime's payment applied, same as the single-point advisor — no new engine, just chained calls
  *  to the existing one, bounded by `RecurringPayment.endDate` so regimes don't overlap. */
-export function planExtraPaymentReallocation(
-  mortgage: MortgageLiability,
+export function planExtraPaymentReallocation<T extends MortgageStructure>(
+  mortgage: T,
   assets: Asset[],
   testAmount: number,
   interval: ReallocationInterval,
@@ -198,8 +200,8 @@ export function planExtraPaymentReallocation(
   // Redistribution is mortgage-wide, same as recommendExtraPayment.ts — isolating it for a
   // per-regime breakdown means stripping it everywhere, not just from the regime's own split.
   const hasRedistribution = mortgage.splits.some((split) => split.refixBalanceTarget !== undefined);
-  const noRedistributionMortgage: MortgageLiability = hasRedistribution
-    ? { ...mortgage, splits: mortgage.splits.map((split) => ({ ...split, refixBalanceTarget: undefined })) }
+  const noRedistributionMortgage: T = hasRedistribution
+    ? ({ ...mortgage, splits: mortgage.splits.map((split) => ({ ...split, refixBalanceTarget: undefined })) } as T)
     : mortgage;
 
   const committed = new Map<string, RecurringPayment[]>();

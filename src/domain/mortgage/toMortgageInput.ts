@@ -1,10 +1,12 @@
 import type { MortgageInput } from "./MortgageInput";
-import type { MortgageLiability } from "./MortgageLiability";
+import type { MortgageStructure } from "./MortgageStructure";
 import type { Asset } from "../asset/Asset";
 
 /** Resolves any split's linked offset account into its offsetBalance before handing off to
- *  SimulationRunner, which only ever sees a plain resolved number — it has no notion of a Portfolio. */
-export function toMortgageInput(mortgage: MortgageLiability, assets: Asset[] = []): MortgageInput {
+ *  SimulationRunner, which only ever sees a plain resolved number — it has no notion of a Portfolio.
+ *  Generic so it works against a `MortgageLiability` (attached to a property) or a
+ *  `MortgageScenario`/derived strategy structure (Mortgage Lab) identically. */
+export function toMortgageInput<T extends MortgageStructure>(mortgage: T, assets: Asset[] = []): MortgageInput {
   return {
     frequency: mortgage.frequency,
     startDate: new Date(`${mortgage.startDate}T00:00:00`),

@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { usePortfolio } from "../../store/usePortfolio";
 import { isPropertyAsset, type PropertyAsset } from "../../domain/property/PropertyAsset";
+import { isCashAccount } from "../../domain/cash/CashAccount";
 import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability";
 import type { Scenario } from "../../domain/scenario/Scenario";
+import type { MortgageScenario } from "../../domain/mortgage/MortgageScenario";
 import type { ReportData } from "../../domain/reporting/ReportData";
 import { buildPortfolioSummaryReport } from "../../domain/reporting/buildPortfolioSummaryReport";
 import { buildMortgageReport } from "../../domain/reporting/buildMortgageReport";
@@ -10,9 +12,10 @@ import { buildPropertyReport } from "../../domain/reporting/buildPropertyReport"
 import { buildCashFlowReport } from "../../domain/reporting/buildCashFlowReport";
 import { buildNetWorthReport } from "../../domain/reporting/buildNetWorthReport";
 import { buildStrategyComparisonReport } from "../../domain/reporting/buildStrategyComparisonReport";
+import { buildMortgageScenarioComparisonReport } from "../../domain/reporting/buildMortgageScenarioComparisonReport";
 import { ReportView } from "./ReportView";
 
-type ReportKind = "portfolio-summary" | "mortgage" | "property" | "cash-flow" | "net-worth" | "strategy-comparison";
+type ReportKind = "portfolio-summary" | "mortgage" | "property" | "cash-flow" | "net-worth" | "strategy-comparison" | "mortgage-scenario-comparison";
 
 const REPORT_CARDS: { kind: ReportKind; title: string; description: string }[] = [
   { kind: "portfolio-summary", title: "Portfolio Summary", description: "Net worth, cash flow, and interest at a glance." },
@@ -21,6 +24,7 @@ const REPORT_CARDS: { kind: ReportKind; title: string; description: string }[] =
   { kind: "cash-flow", title: "Cash Flow Report", description: "Income and expenses at every frequency." },
   { kind: "net-worth", title: "Net Worth Report", description: "Today's net worth, broken down by property and account." },
   { kind: "strategy-comparison", title: "Strategy Comparison", description: "Baseline vs. a saved strategy." },
+  { kind: "mortgage-scenario-comparison", title: "Mortgage Scenario Comparison", description: "A Mortgage Lab scenario vs. its own strategies." },
 ];
 
 export function ReportsHome() {
@@ -31,6 +35,8 @@ export function ReportsHome() {
   const mortgages = portfolio.liabilities.filter((liability): liability is MortgageLiability => liability.type === "mortgage");
   const properties = portfolio.assets.filter(isPropertyAsset);
   const scenarios = portfolio.scenarios;
+  const mortgageScenarios = portfolio.mortgageScenarios;
+  const cashAccounts = portfolio.assets.filter(isCashAccount);
 
   const openMortgageReport = (liability: MortgageLiability) => {
     setReport(buildMortgageReport(liability, portfolio.assets));
@@ -43,6 +49,11 @@ export function ReportsHome() {
   };
   const openStrategyReport = (scenario: Scenario) => {
     setReport(buildStrategyComparisonReport(portfolio, scenario));
+    setPicker(null);
+  };
+  const openMortgageScenarioReport = (scenario: MortgageScenario) => {
+    const strategies = portfolio.mortgageStrategies.filter((strategy) => strategy.scenarioId === scenario.id);
+    setReport(buildMortgageScenarioComparisonReport(scenario, strategies, cashAccounts));
     setPicker(null);
   };
 
@@ -59,17 +70,22 @@ export function ReportsHome() {
     } else if (kind === "strategy-comparison") {
       if (scenarios.length === 1) openStrategyReport(scenarios[0]);
       else setPicker("strategy-comparison");
+    } else if (kind === "mortgage-scenario-comparison") {
+      if (mortgageScenarios.length === 1) openMortgageScenarioReport(mortgageScenarios[0]);
+      else setPicker("mortgage-scenario-comparison");
     }
   };
 
   const isDisabled = (kind: ReportKind) => (kind === "mortgage" && mortgages.length === 0)
     || (kind === "property" && properties.length === 0)
-    || (kind === "strategy-comparison" && scenarios.length === 0);
+    || (kind === "strategy-comparison" && scenarios.length === 0)
+    || (kind === "mortgage-scenario-comparison" && mortgageScenarios.length === 0);
 
   const emptyMessage: Partial<Record<ReportKind, string>> = {
     mortgage: "Add a mortgage in Properties first.",
     property: "Add a property in Properties first.",
     "strategy-comparison": "Save a strategy in Strategies first.",
+    "mortgage-scenario-comparison": "Save a scenario in Mortgage Lab first.",
   };
 
   if (report) {
@@ -120,6 +136,23 @@ export function ReportsHome() {
             <button type="button" className="property-card" key={scenario.id} onClick={() => openStrategyReport(scenario)}>
               <h3>{scenario.name}</h3>
               <p className="muted">{scenario.assumptions.projectionYears}-year plan</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (picker === "mortgage-scenario-comparison") {
+    return (
+      <div className="reports-home">
+        <button className="text-button" onClick={() => setPicker(null)}>&larr; Back to reports</button>
+        <div className="calculator__heading"><div><p className="eyebrow">Mortgage Scenario Comparison</p><h2>Choose a scenario.</h2></div></div>
+        <div className="property-grid-list">
+          {mortgageScenarios.map((scenario) => (
+            <button type="button" className="property-card" key={scenario.id} onClick={() => openMortgageScenarioReport(scenario)}>
+              <h3>{scenario.name}</h3>
+              <p className="muted">{scenario.splits.length} split{scenario.splits.length === 1 ? "" : "s"}</p>
             </button>
           ))}
         </div>

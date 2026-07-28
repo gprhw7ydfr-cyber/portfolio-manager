@@ -1,4 +1,4 @@
-import type { MortgageLiability } from "./MortgageLiability";
+import type { MortgageStructure } from "./MortgageStructure";
 import type { Asset } from "../asset/Asset";
 import type { AmortizationPayment } from "./AmortizationPayment";
 import { toMortgageInput } from "./toMortgageInput";
@@ -42,15 +42,17 @@ export interface ExtraPaymentAnalysis {
 /** Builds a hypothetical mortgage with `testAmount` directed at `splitId` — a one-off lump sum
  *  today, or a recurring weekly/monthly extra payment from today on — reused by both the ranked
  *  comparison below and anything that wants to show what following a recommendation actually
- *  does to the whole mortgage. */
-export function buildExtraPaymentTestMortgage(
-  mortgage: MortgageLiability,
+ *  does to the whole mortgage. Generic over `MortgageLiability`/`MortgageScenario`-and-friends;
+ *  the `as T` cast is safe because the only field touched, `splits`, has the identical declared
+ *  type (`MortgageSplit[]`) on every `T` — TS just can't see that through a generic spread. */
+export function buildExtraPaymentTestMortgage<T extends MortgageStructure>(
+  mortgage: T,
   splitId: string,
   testAmount: number,
   mode: ExtraPaymentMode,
   asOf: Date,
   baselineSchedule: AmortizationPayment[],
-): MortgageLiability {
+): T {
   return {
     ...mortgage,
     splits: mortgage.splits.map((candidate) => {
@@ -69,7 +71,7 @@ export function buildExtraPaymentTestMortgage(
         ],
       };
     }),
-  };
+  } as T;
 }
 
 /** Answers "if I put testAmount into split A vs split B today, which produces less total
@@ -77,8 +79,8 @@ export function buildExtraPaymentTestMortgage(
  *  are all accounted for exactly as they actually behave, not approximated by a nominal rate.
  *  `mode` chooses how the test amount is applied: a one-off lump sum today, or a recurring
  *  weekly/monthly extra payment from today on — the engine already supports both natively. */
-export function recommendExtraPayment(
-  mortgage: MortgageLiability,
+export function recommendExtraPayment<T extends MortgageStructure>(
+  mortgage: T,
   assets: Asset[],
   testAmount: number,
   mode: ExtraPaymentMode = "lump-sum",
@@ -91,8 +93,8 @@ export function recommendExtraPayment(
   // indirectly affected by paying it down changing what's available to redistribute among the
   // splits that do, so isolation strips refixBalanceTarget everywhere, not just on the candidate.
   const hasRedistribution = mortgage.splits.some((split) => split.refixBalanceTarget !== undefined);
-  const noRedistributionMortgage: MortgageLiability = hasRedistribution
-    ? { ...mortgage, splits: mortgage.splits.map((split) => ({ ...split, refixBalanceTarget: undefined })) }
+  const noRedistributionMortgage: T = hasRedistribution
+    ? ({ ...mortgage, splits: mortgage.splits.map((split) => ({ ...split, refixBalanceTarget: undefined })) } as T)
     : mortgage;
   const noRedistributionBaseline = hasRedistribution
     ? MortgageEngine.simulate(toMortgageInput(noRedistributionMortgage, assets))

@@ -1,6 +1,7 @@
 import { usePortfolio } from "../../store/usePortfolio";
 import { updateById } from "../../domain/shared/updateById";
 import { createDefaultSplit } from "../../domain/mortgage/createDefaultSplit";
+import { createMortgageLiabilityFromStructure } from "../../domain/mortgage/createMortgageLiabilityFromStructure";
 import { isPropertyAsset } from "../../domain/property/PropertyAsset";
 import { isCashAccount } from "../../domain/cash/CashAccount";
 import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput";
@@ -52,16 +53,17 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
 
   const createMortgage = () => {
     if (!property) return;
-    const mortgage: MortgageLiability = {
-      id: crypto.randomUUID(),
-      type: "mortgage",
-      name: `${property.name} mortgage`,
-      ownership: property.ownership,
+    const mortgage = createMortgageLiabilityFromStructure(
+      {
+        id: crypto.randomUUID(),
+        name: `${property.name} mortgage`,
+        frequency: "monthly",
+        startDate: today(),
+        splits: [createDefaultSplit("Main loan")],
+      },
+      property.ownership,
       propertyId,
-      frequency: "monthly",
-      startDate: today(),
-      splits: [createDefaultSplit("Main loan")],
-    };
+    );
     setPortfolio((current) => ({ ...current, liabilities: [...current.liabilities, mortgage] }));
   };
 
@@ -277,13 +279,21 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
       <div className="property-section">
         <h4>Mortgage</h4>
         {attachedMortgage ? (
-          <MortgagePanel
-            mortgage={attachedMortgage}
-            cashAccounts={cashAccounts}
-            onChange={(changes) => updateMortgage(attachedMortgage.id, changes)}
-            title={attachedMortgage.name}
-            subtitle="Secured against this property."
-          />
+          <>
+            {attachedMortgage.sourceScenarioId && (
+              <p className="muted">
+                Built from Mortgage Lab scenario: {portfolio.mortgageScenarios.find((scenario) => scenario.id === attachedMortgage.sourceScenarioId)?.name ?? "(deleted)"}
+                {attachedMortgage.sourceStrategyId && ` — strategy: ${portfolio.mortgageStrategies.find((strategy) => strategy.id === attachedMortgage.sourceStrategyId)?.name ?? "(deleted)"}`}
+              </p>
+            )}
+            <MortgagePanel
+              mortgage={attachedMortgage}
+              cashAccounts={cashAccounts}
+              onChange={(changes) => updateMortgage(attachedMortgage.id, changes)}
+              title={attachedMortgage.name}
+              subtitle="Secured against this property."
+            />
+          </>
         ) : (
           <div className="property-mortgage-picker">
             <p className="muted">No mortgage attached to this property yet.</p>

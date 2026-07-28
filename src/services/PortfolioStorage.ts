@@ -17,7 +17,12 @@ export function loadPortfolio(): Portfolio | undefined {
   try {
     const stored = JSON.parse(raw) as StoredPortfolio;
     if (stored.schemaVersion !== SCHEMA_VERSION) return undefined;
-    return { ...stored.portfolio, scenarios: stored.portfolio.scenarios ?? [] };
+    return {
+      ...stored.portfolio,
+      scenarios: stored.portfolio.scenarios ?? [],
+      mortgageScenarios: stored.portfolio.mortgageScenarios ?? [],
+      mortgageStrategies: stored.portfolio.mortgageStrategies ?? [],
+    };
   } catch {
     return undefined;
   }
