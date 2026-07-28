@@ -6,10 +6,8 @@ import { createDefaultProperty } from "../../domain/property/createDefaultProper
 import { isCashAccount } from "../../domain/cash/CashAccount";
 import { createDefaultCashAccount } from "../../domain/cash/createDefaultCashAccount";
 import { calculateCashFlow } from "../../domain/cashflow/calculateCashFlow";
-import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability";
 import type { CashAccount } from "../../domain/cash/CashAccount";
 import { PropertyCard } from "./PropertyCard";
-import { MortgagePanel } from "../mortgage/MortgagePanel";
 import { CashAccountCard } from "../cash/CashAccountCard";
 import { CashFlowSummaryCard } from "../cashflow/CashFlowSummaryCard";
 
@@ -22,9 +20,6 @@ export function PropertyList({ onSelectProperty }: PropertyListProps) {
 
   const properties = portfolio.assets.filter(isPropertyAsset);
   const cashAccounts = portfolio.assets.filter(isCashAccount);
-  const unattachedMortgages = portfolio.liabilities.filter(
-    (liability): liability is MortgageLiability => liability.type === "mortgage" && !liability.propertyId,
-  );
   const cashFlowSummary = useMemo(() => calculateCashFlow(portfolio), [portfolio]);
 
   const ownership = portfolio.entities.length > 0
@@ -35,13 +30,6 @@ export function PropertyList({ onSelectProperty }: PropertyListProps) {
     const property = createDefaultProperty(`Property ${properties.length + 1}`, ownership);
     setPortfolio((current) => ({ ...current, assets: [...current.assets, property] }));
     onSelectProperty(property.id);
-  };
-
-  const updateMortgage = (id: string, changes: Partial<MortgageLiability>) => {
-    setPortfolio((current) => ({
-      ...current,
-      liabilities: updateById(current.liabilities, id, changes),
-    }));
   };
 
   const addCashAccount = () => {
@@ -80,29 +68,6 @@ export function PropertyList({ onSelectProperty }: PropertyListProps) {
 
         <button className="button button--secondary" onClick={addProperty}>+ Add property</button>
       </section>
-
-      {unattachedMortgages.length > 0 && (
-        <section className="calculator other-mortgages">
-          <div className="calculator__heading">
-            <div>
-              <p className="eyebrow">Other mortgages</p>
-              <h2>Mortgages not attached to a property.</h2>
-            </div>
-          </div>
-          <div className="split-list">
-            {unattachedMortgages.map((mortgage) => (
-              <MortgagePanel
-                key={mortgage.id}
-                mortgage={mortgage}
-                cashAccounts={cashAccounts}
-                onChange={(changes) => updateMortgage(mortgage.id, changes)}
-                title={mortgage.name}
-                subtitle="Not attached to a property yet."
-              />
-            ))}
-          </div>
-        </section>
-      )}
 
       <section className="calculator other-mortgages">
         <div className="calculator__heading">
