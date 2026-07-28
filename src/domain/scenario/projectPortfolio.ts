@@ -3,6 +3,7 @@ import type { Scenario } from "./Scenario";
 import type { BuyPropertyEvent, RefinanceEvent, IncreaseRepaymentsEvent } from "./StrategyEvent";
 import { buyEventPropertyId, buyEventSplitId } from "./StrategyEvent";
 import { isPropertyAsset } from "../property/PropertyAsset";
+import { occupancyFraction } from "../property/calculatePropertyIncome";
 import { isCashAccount } from "../cash/CashAccount";
 import type { MortgageSplit } from "../mortgage/MortgageSplit";
 import type { MortgageInput, RepaymentFrequency } from "../mortgage/MortgageInput";
@@ -44,6 +45,11 @@ interface PropertyProjection {
    *  covers the months since it actually originated. Always 1 for a buy-property-event property,
    *  since its construction already treats the buy as happening on Jan 1 of its own origination year. */
   currentYearOwnershipFraction: number;
+  /** This property's own baseline vacancy assumption (smoothed evenly across the year) — 1 (fully
+   *  occupied) for a buy-property-event property, which has no `PropertyAsset`/vacancy field of its
+   *  own. Stacks multiplicatively with the scenario's own `vacancyRate`, if set — the property's own
+   *  realistic baseline times an optional additional "what if vacancy is worse than usual" stress. */
+  propertyOccupancyFraction: number;
 }
 
 interface MortgageProjection {
@@ -254,6 +260,7 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
       + property.expenses.utilitiesPerYear + property.expenses.otherExpensesPerYear,
     valueBumps: [],
     currentYearOwnershipFraction: currentYearOwnershipFraction(property.purchaseDate, currentYear),
+    propertyOccupancyFraction: occupancyFraction(property),
   }));
 
   for (const event of buyEvents) {
@@ -268,6 +275,7 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
       expensesAnnual: 0,
       valueBumps: [],
       currentYearOwnershipFraction: 1,
+      propertyOccupancyFraction: 1,
     });
   }
 
@@ -320,7 +328,7 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
     const propertyIncome = activeProperties.reduce((sum, p) => {
       const grown = Math.pow(1 + scenario.assumptions.rentalGrowthRate / 100, offset - p.activeFromYear);
       const ownershipFraction = offset === 0 ? p.currentYearOwnershipFraction : 1;
-      return sum + (p.rentPerWeek * PERIODS_PER_YEAR.weekly * vacancyFactor + p.otherIncomePerYear) * grown * ownershipFraction;
+      return sum + (p.rentPerWeek * PERIODS_PER_YEAR.weekly * vacancyFactor * p.propertyOccupancyFraction + p.otherIncomePerYear) * grown * ownershipFraction;
     }, 0);
     const propertyExpenses = activeProperties.reduce((sum, p) => {
       const grown = Math.pow(1 + scenario.assumptions.expenseInflationRate / 100, offset - p.activeFromYear);

@@ -1,6 +1,7 @@
 import type { Portfolio } from "../portfolio/Portfolio";
 import type { PropertyAsset } from "../property/PropertyAsset";
 import { isPropertyAsset } from "../property/PropertyAsset";
+import { annualRentAfterVacancy } from "../property/calculatePropertyIncome";
 import { toMortgageInput } from "../mortgage/toMortgageInput";
 import { MortgageEngine } from "../../engines/MortgageEngine";
 import { PERIODS_PER_YEAR } from "../cashflow/calculateCashFlow";
@@ -58,7 +59,7 @@ function propertyDebtServiceAnnual(property: PropertyAsset, portfolio: Portfolio
 }
 
 function propertyNoiAnnual(property: PropertyAsset): number {
-  const incomeAnnual = property.income.rentPerWeek * PERIODS_PER_YEAR.weekly + property.income.otherIncomePerYear;
+  const incomeAnnual = annualRentAfterVacancy(property) + property.income.otherIncomePerYear;
   const { expenses } = property;
   const expensesAnnual = expenses.ratesPerYear + expenses.insurancePerYear + expenses.maintenancePerYear
     + expenses.bodyCorporatePerYear + expenses.propertyManagementPerYear + expenses.utilitiesPerYear

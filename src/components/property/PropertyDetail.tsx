@@ -216,6 +216,13 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
             </span>
           </label>
           <label className="input-row">
+            <span>Vacancy</span>
+            <span className="input-row__control">
+              <input type="number" min="0" max="52" step="1" value={property.income.vacancyWeeksPerYear ?? 0} onFocus={selectIfZero(property.income.vacancyWeeksPerYear ?? 0)} onChange={(e) => updateProperty({ income: { ...property.income, vacancyWeeksPerYear: numberFromInput(property.income.vacancyWeeksPerYear ?? 0, e.target.value) } })} />
+              <span className="input-row__adornment">weeks/year</span>
+            </span>
+          </label>
+          <label className="input-row">
             <span>Other income</span>
             <span className="input-row__control">
               <b className="input-row__adornment">$</b>

@@ -1,6 +1,7 @@
 import type { Portfolio } from "../portfolio/Portfolio";
 import type { RepaymentFrequency } from "../mortgage/MortgageInput";
 import { isPropertyAsset } from "../property/PropertyAsset";
+import { annualRentAfterVacancy } from "../property/calculatePropertyIncome";
 import { toMortgageInput } from "../mortgage/toMortgageInput";
 import { MortgageEngine } from "../../engines/MortgageEngine";
 
@@ -41,7 +42,7 @@ export function calculateCashFlow(portfolio: Portfolio): CashFlowSummary {
 
   for (const asset of portfolio.assets) {
     if (!isPropertyAsset(asset)) continue;
-    incomeAnnual += asset.income.rentPerWeek * PERIODS_PER_YEAR.weekly + asset.income.otherIncomePerYear;
+    incomeAnnual += annualRentAfterVacancy(asset) + asset.income.otherIncomePerYear;
     const { expenses } = asset;
     expensesAnnual += expenses.ratesPerYear + expenses.insurancePerYear + expenses.maintenancePerYear
       + expenses.bodyCorporatePerYear + expenses.propertyManagementPerYear + expenses.utilitiesPerYear

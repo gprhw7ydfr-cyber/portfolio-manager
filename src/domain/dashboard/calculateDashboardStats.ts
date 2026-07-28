@@ -1,11 +1,12 @@
 import type { Portfolio } from "../portfolio/Portfolio";
 import type { AmortizationPayment } from "../mortgage/AmortizationPayment";
 import { isPropertyAsset } from "../property/PropertyAsset";
+import { annualRentAfterVacancy } from "../property/calculatePropertyIncome";
 import { isCashAccount } from "../cash/CashAccount";
 import { toMortgageInput } from "../mortgage/toMortgageInput";
 import { currentBalanceAsOf } from "../mortgage/scheduleAsOf";
 import { MortgageEngine } from "../../engines/MortgageEngine";
-import { calculateCashFlow, PERIODS_PER_YEAR } from "../cashflow/calculateCashFlow";
+import { calculateCashFlow } from "../cashflow/calculateCashFlow";
 
 export interface DashboardStats {
   netWorth: number;
@@ -85,7 +86,7 @@ export function calculateDashboardStats(portfolio: Portfolio, asOf: Date = new D
   let propertyIncomeAnnual = 0;
   let propertyNetOperatingIncomeAnnual = 0;
   for (const property of properties) {
-    const incomeAnnual = property.income.rentPerWeek * PERIODS_PER_YEAR.weekly + property.income.otherIncomePerYear;
+    const incomeAnnual = annualRentAfterVacancy(property) + property.income.otherIncomePerYear;
     const { expenses } = property;
     const expensesAnnual = expenses.ratesPerYear + expenses.insurancePerYear + expenses.maintenancePerYear
       + expenses.bodyCorporatePerYear + expenses.propertyManagementPerYear + expenses.utilitiesPerYear

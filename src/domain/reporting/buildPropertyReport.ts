@@ -40,6 +40,7 @@ export function buildPropertyReport(
       heading: "Income",
       rows: [
         { label: "Rent", value: `${formatMoney(property.income.rentPerWeek)}/week` },
+        { label: "Vacancy", value: `${property.income.vacancyWeeksPerYear ?? 0} weeks/year` },
         { label: "Other income", value: `${formatMoney(property.income.otherIncomePerYear)}/year` },
       ],
     },

@@ -5,6 +5,10 @@ export type PropertyType = "residential-property" | "commercial-property" | "vac
 export interface PropertyIncome {
   rentPerWeek: number;
   otherIncomePerYear: number;
+  /** Expected weeks per year this property sits vacant with no rental income — smoothed evenly
+   *  across the year (not modeled as specific vacant weeks) so weekly/monthly/annual cash flow
+   *  figures stay linear and consistent with each other. Undefined = fully occupied. */
+  vacancyWeeksPerYear?: number;
 }
 
 export interface PropertyExpenses {
