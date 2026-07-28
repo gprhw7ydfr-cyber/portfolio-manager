@@ -25,14 +25,15 @@ export function Dashboard() {
   const stats = useMemo(() => calculateDashboardStats(portfolio), [portfolio]);
   const charts = useMemo(() => calculateDashboardCharts(portfolio), [portfolio]);
   const projection = useMemo(() => calculateDashboardProjection(portfolio), [portfolio]);
-  const cashFlowSeries = cashFlowUnit === "weekly"
-    ? projection.cashFlowSeries.map((point, index) => ({
-      ...point,
-      // The first point can represent fewer than 52 weeks (a property bought partway through the
-      // current calendar year) — dividing by a flat 52 would understate the real weekly rate.
-      value: point.value / (index === 0 ? projection.firstYearWeeks : 52),
-    }))
-    : projection.cashFlowSeries;
+  // The first point can represent fewer than 52 weeks (a property bought partway through the
+  // current calendar year). Its raw total isn't comparable to a full year's, so both "annually"
+  // and "weekly" show it annualized up to a full-year run-rate — otherwise the two views tell
+  // inconsistent stories (a smaller partial-year total can look "better" than a full year's even
+  // when the underlying weekly rate is worse).
+  const cashFlowSeries = projection.cashFlowSeries.map((point, index) => {
+    const annualizedValue = index === 0 ? (point.value / projection.firstYearWeeks) * 52 : point.value;
+    return { ...point, value: cashFlowUnit === "weekly" ? annualizedValue / 52 : annualizedValue };
+  });
   const { assumptions } = projection;
 
   return (
@@ -112,6 +113,9 @@ export function Dashboard() {
           </label>
         </div>
         <CashFlowProjectionChart points={cashFlowSeries} color={categorical.aqua} seriesLabel={cashFlowUnit === "weekly" ? "Weekly cash flow" : "Annual cash flow"} />
+        {projection.firstYearWeeks < 52 && (
+          <p className="muted">{cashFlowSeries[0]?.year} reflects a partial year ({projection.firstYearWeeks} weeks owned) — shown here as a full-year run-rate so it's comparable to every other year, not the smaller actual dollar total for the months remaining.</p>
+        )}
       </section>
 
       <section className="calculator other-mortgages">
