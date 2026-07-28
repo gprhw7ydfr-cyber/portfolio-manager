@@ -7,6 +7,7 @@ import { ResultCard } from "../mortgage/ResultCard";
 import { AssetAllocationChart } from "./AssetAllocationChart";
 import { PropertyValuesChart } from "./PropertyValuesChart";
 import { TrendLineChart } from "./TrendLineChart";
+import { InvestmentMetricsPanel } from "./InvestmentMetricsPanel";
 import { getCategorical } from "./chartPalette";
 import { useTheme } from "../../store/useTheme";
 
@@ -46,6 +47,10 @@ export function Dashboard() {
           <ResultCard label="Portfolio return" value={percent(stats.portfolioReturn)} supportingText="Gross rental yield" />
           <ResultCard label="Passive income" value={formatMoney(stats.passiveIncomeAnnual)} supportingText="Property income per year" />
         </div>
+      </section>
+
+      <section className="calculator other-mortgages">
+        <InvestmentMetricsPanel portfolio={portfolio} />
       </section>
 
       <section className="calculator other-mortgages">

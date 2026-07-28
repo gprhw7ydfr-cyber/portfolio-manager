@@ -38,6 +38,12 @@ export interface PropertyAsset extends AssetBase {
   income: PropertyIncome;
   expenses: PropertyExpenses;
   capitalImprovements: CapitalImprovement[];
+  /** Cash actually put in — deposit + capital improvements funded from cash — used as the
+   *  denominator for Cash-on-Cash Return and ROI. Pre-filled from an estimate (purchase price
+   *  minus the attached mortgage's starting principal, plus capital improvements) whenever
+   *  undefined, but always user-editable since that estimate can't see a later refinance or
+   *  extra repayments made before this app was set up. */
+  cashInvested?: number;
 }
 
 const PROPERTY_TYPES: PropertyType[] = ["residential-property", "commercial-property", "vacant-land"];

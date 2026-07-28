@@ -5,7 +5,9 @@ import { createMortgageLiabilityFromStructure } from "../../domain/mortgage/crea
 import { isPropertyAsset } from "../../domain/property/PropertyAsset";
 import { isCashAccount } from "../../domain/cash/CashAccount";
 import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput";
+import { estimateCashInvested } from "../../domain/dashboard/calculateInvestmentMetrics";
 import { MortgagePanel } from "../mortgage/MortgagePanel";
+import { InvestmentMetricsPanel } from "../dashboard/InvestmentMetricsPanel";
 import { CapitalImprovementRow } from "./CapitalImprovementRow";
 import type { PropertyAsset, PropertyType, CapitalImprovement } from "../../domain/property/PropertyAsset";
 import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability";
@@ -314,6 +316,28 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="property-section">
+        <h4>Investment metrics</h4>
+        <div className="property-grid">
+          <label className="input-row">
+            <span>Cash invested</span>
+            <span className="input-row__control">
+              <b className="input-row__adornment">$</b>
+              <input
+                type="number"
+                min="0"
+                step="1000"
+                value={property.cashInvested ?? estimateCashInvested(property, portfolio)}
+                onFocus={selectIfZero(property.cashInvested ?? estimateCashInvested(property, portfolio))}
+                onChange={(e) => updateProperty({ cashInvested: numberFromInput(property.cashInvested ?? estimateCashInvested(property, portfolio), e.target.value) })}
+              />
+            </span>
+          </label>
+        </div>
+        <p className="muted">Deposit plus capital improvements funded from cash — pre-filled from purchase price minus the attached mortgage's starting principal, plus improvements. Edit if that estimate isn't right (e.g. after a refinance or extra repayments made before this was set up).</p>
+        <InvestmentMetricsPanel portfolio={portfolio} property={property} />
       </div>
     </section>
   );
