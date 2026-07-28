@@ -15,7 +15,10 @@ import { useTheme } from "../../store/useTheme";
 
 const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
 
-type CashFlowUnit = "weekly" | "annually";
+type CashFlowUnit = "weekly" | "monthly" | "annually";
+
+const CASH_FLOW_UNIT_DIVISOR: Record<CashFlowUnit, number> = { weekly: 52, monthly: 12, annually: 1 };
+const CASH_FLOW_UNIT_LABEL: Record<CashFlowUnit, string> = { weekly: "Weekly cash flow", monthly: "Monthly cash flow", annually: "Annual cash flow" };
 
 export function Dashboard() {
   const [portfolio] = usePortfolio();
@@ -32,7 +35,7 @@ export function Dashboard() {
   // when the underlying weekly rate is worse).
   const cashFlowSeries = projection.cashFlowSeries.map((point, index) => {
     const annualizedValue = index === 0 ? (point.value / projection.firstYearWeeks) * 52 : point.value;
-    return { ...point, value: cashFlowUnit === "weekly" ? annualizedValue / 52 : annualizedValue };
+    return { ...point, value: annualizedValue / CASH_FLOW_UNIT_DIVISOR[cashFlowUnit] };
   });
   const { assumptions } = projection;
 
@@ -88,11 +91,12 @@ export function Dashboard() {
             <span>Show as</span>
             <select value={cashFlowUnit} onChange={(event) => setCashFlowUnit(event.target.value as CashFlowUnit)}>
               <option value="annually">Annually</option>
+              <option value="monthly">Monthly</option>
               <option value="weekly">Weekly</option>
             </select>
           </label>
         </div>
-        <CashFlowProjectionChart points={cashFlowSeries} color={categorical.aqua} seriesLabel={cashFlowUnit === "weekly" ? "Weekly cash flow" : "Annual cash flow"} />
+        <CashFlowProjectionChart points={cashFlowSeries} color={categorical.aqua} seriesLabel={CASH_FLOW_UNIT_LABEL[cashFlowUnit]} />
         {projection.firstYearWeeks < 52 && (
           <p className="muted">{cashFlowSeries[0]?.year} reflects a partial year ({projection.firstYearWeeks} weeks owned) — shown here as a full-year run-rate so it's comparable to every other year, not the smaller actual dollar total for the months remaining.</p>
         )}
