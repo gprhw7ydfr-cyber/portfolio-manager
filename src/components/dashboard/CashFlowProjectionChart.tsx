@@ -12,6 +12,7 @@ interface CashFlowProjectionChartProps {
 const VIEW_WIDTH = 600;
 const VIEW_HEIGHT = 260;
 const PLOT_TOP = 24;
+const PLOT_LEFT = 36;
 const BASELINE = 220;
 const BAR_MAX_WIDTH = 24;
 
@@ -49,7 +50,8 @@ export function CashFlowProjectionChart({ points, color, seriesLabel }: CashFlow
   const topPlotHeight = baselineY - PLOT_TOP;
   const bottomPlotHeight = BASELINE - baselineY;
 
-  const bandWidth = VIEW_WIDTH / points.length;
+  const plotWidth = VIEW_WIDTH - PLOT_LEFT;
+  const bandWidth = plotWidth / points.length;
   const barWidth = Math.min(BAR_MAX_WIDTH, bandWidth * 0.5);
   const gridSteps = [0.25, 0.5, 0.75, 1];
 
@@ -60,7 +62,7 @@ export function CashFlowProjectionChart({ points, color, seriesLabel }: CashFlow
           const y = baselineY - topPlotHeight * step;
           return (
             <g key={`top-${step}`}>
-              <line x1="0" x2={VIEW_WIDTH} y1={y} y2={y} stroke={chartInk.gridline} strokeWidth="1" />
+              <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={y} y2={y} stroke={chartInk.gridline} strokeWidth="1" />
               <text x="0" y={y - 4} fontSize="10" fill={chartInk.muted}>{formatCompactMoney(topExtent * step)}</text>
             </g>
           );
@@ -69,18 +71,18 @@ export function CashFlowProjectionChart({ points, color, seriesLabel }: CashFlow
           const y = baselineY + bottomPlotHeight * step;
           return (
             <g key={`bottom-${step}`}>
-              <line x1="0" x2={VIEW_WIDTH} y1={y} y2={y} stroke={chartInk.gridline} strokeWidth="1" />
+              <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={y} y2={y} stroke={chartInk.gridline} strokeWidth="1" />
               <text x="0" y={y - 4} fontSize="10" fill={chartInk.muted}>{formatCompactMoney(-bottomExtent * step)}</text>
             </g>
           );
         })}
-        <line x1="0" x2={VIEW_WIDTH} y1={baselineY} y2={baselineY} stroke={chartInk.baseline} strokeWidth="1" />
+        <line x1={PLOT_LEFT} x2={VIEW_WIDTH} y1={baselineY} y2={baselineY} stroke={chartInk.baseline} strokeWidth="1" />
         {points.map((point, index) => {
           const isPositive = point.value >= 0;
           const barHeight = isPositive
             ? (topExtent > 0 ? Math.max((point.value / topExtent) * topPlotHeight, 0) : 0)
             : (bottomExtent > 0 ? Math.max((-point.value / bottomExtent) * bottomPlotHeight, 0) : 0);
-          const x = index * bandWidth + (bandWidth - barWidth) / 2;
+          const x = PLOT_LEFT + index * bandWidth + (bandWidth - barWidth) / 2;
           const y = isPositive ? baselineY - barHeight : baselineY;
           const labelY = isPositive ? y - 6 : y + barHeight + 14;
           return (

@@ -2,11 +2,17 @@ import { usePortfolio } from "../../store/usePortfolio";
 import { updateById } from "../../domain/shared/updateById";
 import { createDefaultSplit } from "../../domain/mortgage/createDefaultSplit";
 import { createMortgageLiabilityFromStructure } from "../../domain/mortgage/createMortgageLiabilityFromStructure";
+import { toMortgageInput } from "../../domain/mortgage/toMortgageInput";
+import { combineSchedules } from "../../domain/mortgage/amortizationDetail";
+import { MortgageEngine } from "../../engines/MortgageEngine";
 import { isPropertyAsset } from "../../domain/property/PropertyAsset";
 import { isCashAccount } from "../../domain/cash/CashAccount";
 import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput";
 import { estimateCashInvested } from "../../domain/dashboard/calculateInvestmentMetrics";
+import { calculatePropertyCashFlow } from "../../domain/cashflow/calculatePropertyCashFlow";
 import { MortgagePanel } from "../mortgage/MortgagePanel";
+import { SummaryCard } from "../mortgage/SummaryCard";
+import { CashFlowSummaryCard } from "../cashflow/CashFlowSummaryCard";
 import { InvestmentMetricsPanel } from "../dashboard/InvestmentMetricsPanel";
 import { CapitalImprovementRow } from "./CapitalImprovementRow";
 import type { PropertyAsset, PropertyType, CapitalImprovement } from "../../domain/property/PropertyAsset";
@@ -38,6 +44,16 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
   const attachedMortgage = mortgages.find((mortgage) => mortgage.propertyId === propertyId);
   const unattachedMortgages = mortgages.filter((mortgage) => !mortgage.propertyId);
   const cashAccounts = portfolio.assets.filter(isCashAccount);
+
+  const mortgageResult = attachedMortgage
+    ? MortgageEngine.simulate(toMortgageInput(attachedMortgage, cashAccounts))
+    : undefined;
+  const combinedSchedule = mortgageResult
+    ? combineSchedules(mortgageResult.splits.map((split) => split.schedule))
+    : [];
+  const propertyCashFlow = property
+    ? calculatePropertyCashFlow(property, attachedMortgage, cashAccounts)
+    : undefined;
 
   const updateProperty = (changes: Partial<PropertyAsset>) => {
     setPortfolio((current) => ({
@@ -120,6 +136,36 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
           <p className="muted">{ownerNames || "No owner assigned"}</p>
         </div>
         <button className="text-button text-button--danger" onClick={deleteProperty}>Delete property</button>
+      </div>
+
+      {attachedMortgage && mortgageResult && (
+        <SummaryCard result={mortgageResult} frequency={attachedMortgage.frequency} combinedSchedule={combinedSchedule} />
+      )}
+
+      {propertyCashFlow && (
+        <CashFlowSummaryCard summary={propertyCashFlow} eyebrow="Cash flow" title="This property's income, expenses, and cash flow" />
+      )}
+
+      <div className="property-section">
+        <h4>Investment metrics</h4>
+        <div className="property-grid">
+          <label className="input-row">
+            <span>Cash invested</span>
+            <span className="input-row__control">
+              <b className="input-row__adornment">$</b>
+              <input
+                type="number"
+                min="0"
+                step="1000"
+                value={property.cashInvested ?? estimateCashInvested(property, portfolio)}
+                onFocus={selectIfZero(property.cashInvested ?? estimateCashInvested(property, portfolio))}
+                onChange={(e) => updateProperty({ cashInvested: numberFromInput(property.cashInvested ?? estimateCashInvested(property, portfolio), e.target.value) })}
+              />
+            </span>
+          </label>
+        </div>
+        <p className="muted">Deposit plus capital improvements funded from cash — pre-filled from purchase price minus the attached mortgage's starting principal, plus improvements. Edit if that estimate isn't right (e.g. after a refinance or extra repayments made before this was set up).</p>
+        <InvestmentMetricsPanel portfolio={portfolio} property={property} />
       </div>
 
       <div className="property-section">
@@ -300,6 +346,7 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
               onChange={(changes) => updateMortgage(attachedMortgage.id, changes)}
               title={attachedMortgage.name}
               subtitle="Secured against this property."
+              hideSummary
             />
           </>
         ) : (
@@ -323,28 +370,6 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
             </div>
           </div>
         )}
-      </div>
-
-      <div className="property-section">
-        <h4>Investment metrics</h4>
-        <div className="property-grid">
-          <label className="input-row">
-            <span>Cash invested</span>
-            <span className="input-row__control">
-              <b className="input-row__adornment">$</b>
-              <input
-                type="number"
-                min="0"
-                step="1000"
-                value={property.cashInvested ?? estimateCashInvested(property, portfolio)}
-                onFocus={selectIfZero(property.cashInvested ?? estimateCashInvested(property, portfolio))}
-                onChange={(e) => updateProperty({ cashInvested: numberFromInput(property.cashInvested ?? estimateCashInvested(property, portfolio), e.target.value) })}
-              />
-            </span>
-          </label>
-        </div>
-        <p className="muted">Deposit plus capital improvements funded from cash — pre-filled from purchase price minus the attached mortgage's starting principal, plus improvements. Edit if that estimate isn't right (e.g. after a refinance or extra repayments made before this was set up).</p>
-        <InvestmentMetricsPanel portfolio={portfolio} property={property} />
       </div>
     </section>
   );

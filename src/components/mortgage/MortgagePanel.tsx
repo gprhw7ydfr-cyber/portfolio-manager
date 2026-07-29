@@ -18,6 +18,9 @@ interface MortgagePanelProps<T extends MortgageStructure> {
   onChange: (changes: Partial<T>) => void;
   title?: string;
   subtitle?: string;
+  /** Set when the caller renders its own SummaryCard elsewhere on the page (e.g. at the top,
+   *  above the split editors) instead of in its usual spot here. */
+  hideSummary?: boolean;
 }
 
 export function MortgagePanel<T extends MortgageStructure>({
@@ -26,6 +29,7 @@ export function MortgagePanel<T extends MortgageStructure>({
   onChange,
   title = "Plan your lending, split by split.",
   subtitle = "Adjust each loan independently and see the combined position below.",
+  hideSummary = false,
 }: MortgagePanelProps<T>) {
   const result = useMemo(
     () => MortgageEngine.simulate(toMortgageInput(mortgage, cashAccounts)),
@@ -118,7 +122,7 @@ export function MortgagePanel<T extends MortgageStructure>({
         + Add another split
       </button>
 
-      <SummaryCard result={result} frequency={mortgage.frequency} />
+      {!hideSummary && <SummaryCard result={result} frequency={mortgage.frequency} combinedSchedule={combinedSchedule} />}
 
       <AmortizationDetail schedule={combinedSchedule} label="Combined mortgage" />
 

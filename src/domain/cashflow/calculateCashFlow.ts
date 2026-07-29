@@ -24,7 +24,7 @@ export const PERIODS_PER_YEAR: Record<RepaymentFrequency, number> = {
   monthly: 12,
 };
 
-function toRow(annualAmount: number): CashFlowRow {
+export function toRow(annualAmount: number): CashFlowRow {
   return {
     weekly: annualAmount / PERIODS_PER_YEAR.weekly,
     fortnightly: annualAmount / PERIODS_PER_YEAR.fortnightly,

@@ -2,6 +2,8 @@ import type { CashFlowSummary } from "../../domain/cashflow/calculateCashFlow";
 
 interface CashFlowSummaryCardProps {
   summary: CashFlowSummary;
+  eyebrow?: string;
+  title?: string;
 }
 
 const money = (value: number) => value.toLocaleString("en-NZ", { style: "currency", currency: "NZD", maximumFractionDigits: 0 });
@@ -13,11 +15,11 @@ const columns: { key: "weekly" | "fortnightly" | "monthly" | "annually"; label: 
   { key: "annually", label: "Annually" },
 ];
 
-export function CashFlowSummaryCard({ summary }: CashFlowSummaryCardProps) {
+export function CashFlowSummaryCard({ summary, eyebrow = "Cash flow", title = "Your consolidated position" }: CashFlowSummaryCardProps) {
   return (
     <section className="summary-card cash-flow-summary">
       <div className="summary-card__heading">
-        <div><p className="eyebrow">Cash flow</p><h3>Your consolidated position</h3></div>
+        <div><p className="eyebrow">{eyebrow}</p><h3>{title}</h3></div>
       </div>
       <table className="cash-flow-table">
         <thead>
