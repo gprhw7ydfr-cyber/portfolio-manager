@@ -162,7 +162,7 @@ export function SplitCard({ split, result, canDelete, canMoveUp, canMoveDown, av
               <option value="none">Off</option>
               <option value="value">Fixed value</option>
               <option value="percentage">Percentage of mortgage</option>
-              <option value="remainder">Share of remainder</option>
+              <option value="remainder">Ratio of remainder</option>
             </select>
           </label>
         </div>
@@ -173,7 +173,7 @@ export function SplitCard({ split, result, canDelete, canMoveUp, canMoveDown, av
           <label className="offset-target"><span>Target percentage of mortgage</span><span className="inline-control"><input type="number" min="0" max="100" step="1" value={refixTarget.percentage ?? 0} onFocus={selectIfZero(refixTarget.percentage ?? 0)} onChange={(event) => updateRefixTarget({ percentage: numberFromInput(refixTarget.percentage ?? 0, event.target.value) })} /><b>%</b></span></label>
         )}
         {refixTarget?.mode === "remainder" && (
-          <label className="offset-target"><span>Share of remainder</span><span className="inline-control"><input type="number" min="0" step="1" value={refixTarget.share ?? 1} onFocus={selectIfZero(refixTarget.share ?? 1)} onChange={(event) => updateRefixTarget({ share: numberFromInput(refixTarget.share ?? 1, event.target.value) })} /></span></label>
+          <label className="offset-target"><span>Ratio of remainder</span><span className="inline-control"><input type="number" min="0" step="1" value={refixTarget.share ?? 1} onFocus={selectIfZero(refixTarget.share ?? 1)} onChange={(event) => updateRefixTarget({ share: numberFromInput(refixTarget.share ?? 1, event.target.value) })} /></span></label>
         )}
         <p className="rate-plan__help">{refixTarget ? "Whenever any split in this mortgage refixes, this split's balance moves toward its target." : "Off — this split's balance is never touched by another split's refix."}</p>
       </div>

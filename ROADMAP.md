@@ -302,6 +302,12 @@ The user noticed that going Properties → an individual property → Dashboard 
 
 Verified: `tsc`/`eslint` clean. Browser: selected Property 1 from the Properties list, confirmed its detail page rendered, navigated to Dashboard, then clicked "Properties" again and confirmed it landed on the property list ("Your properties.") rather than reopening Property 1's detail page. Confirmed Strategies and Mortgage Lab already behaved correctly by inspection of their self-contained state (no lifted selection in `App.tsx` for either).
 
+## Phase 20 — Relabel "Share of remainder" to "Ratio of remainder" (done)
+
+The user found "Share of remainder" (one of the three refix redistribution modes in `SplitCard.tsx`'s "Rebalance at refix" control) less intuitive than "Ratio of remainder". Pure display-text rename — the underlying mode value stays `"remainder"` (`RefixBalanceTargetMode`), so no domain/engine/storage changes were needed; both occurrences (the dropdown option and the numeric input's own label, shown only when that mode is selected) were updated.
+
+Verified: `tsc`/`eslint` clean. Browser: created a temporary Mortgage Lab scenario, confirmed the Mode dropdown now reads "Ratio of remainder" and, after selecting it, the input label beneath also reads "Ratio of remainder". Test scenario deleted afterward.
+
 ## Later / not yet scoped
 
 Phase 8 remainder — keyboard shortcuts, search/filtering, drag-and-drop dashboard widgets, print-friendly reports, and a Developer Mode raw-JSON/debug-state panel (the Reports phase's JSON export already covers that need for a technical user).
