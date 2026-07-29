@@ -119,12 +119,10 @@ export function NetWorthFanChart({ points }: NetWorthFanChartProps) {
         <li><span className="chart-legend__swatch" style={{ background: COLOR, opacity: 0.3 }} /><span className="chart-legend__label">10th–90th percentile range</span></li>
       </ul>
 
-      {hovered && (
-        <div className="chart-tooltip">
-          <strong>{formatMoney(hovered.median)} median</strong>
-          <span>{formatMoney(hovered.p10)} – {formatMoney(hovered.p90)} &middot; {hovered.year}</span>
-        </div>
-      )}
+      <div className={`chart-tooltip${hovered ? "" : " chart-tooltip--hidden"}`}>
+        <strong>{hovered ? `${formatMoney(hovered.median)} median` : " "}</strong>
+        <span>{hovered ? <>{formatMoney(hovered.p10)} – {formatMoney(hovered.p90)} &middot; {hovered.year}</> : " "}</span>
+      </div>
     </div>
   );
 }

@@ -245,6 +245,10 @@ select { border: 1px solid var(--border-input); border-radius: 9px; padding: 10p
 .chart-tooltip { justify-self: start; display: grid; gap: 2px; padding: 8px 12px; border-radius: 9px; background: var(--tooltip-bg); color: var(--tooltip-text); font-size: .8rem; }
 .chart-tooltip strong { font-size: .95rem; }
 .chart-tooltip span { color: var(--tooltip-text-muted); }
+/* Always rendered (never unmounted) so its row's height is reserved up front — hovering just
+   toggles visibility instead of mounting/unmounting the element, which would otherwise resize
+   the whole card and cause visible flicker on every hover. */
+.chart-tooltip--hidden { visibility: hidden; }
 .scenario-list-page { display: grid; gap: 40px; }
 .scenario-card { position: relative; gap: 8px; }
 .scenario-card__select { display: grid; gap: 4px; text-align: left; border: 0; background: transparent; padding: 0; width: 100%; }

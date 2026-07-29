@@ -129,12 +129,10 @@ export function TrendLineChart({ points, color, seriesLabel }: TrendLineChartPro
           onPointerLeave={() => setHoverIndex(null)}
         />
       </svg>
-      {hovered && (
-        <div className="chart-tooltip">
-          <strong>{formatMoney(hovered.value)}</strong>
-          <span>{seriesLabel} &middot; {hovered.year}</span>
-        </div>
-      )}
+      <div className={`chart-tooltip${hovered ? "" : " chart-tooltip--hidden"}`}>
+        <strong>{hovered ? formatMoney(hovered.value) : " "}</strong>
+        <span>{hovered ? <>{seriesLabel} &middot; {hovered.year}</> : " "}</span>
+      </div>
     </div>
   );
 }

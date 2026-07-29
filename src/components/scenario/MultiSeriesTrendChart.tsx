@@ -126,18 +126,15 @@ export function MultiSeriesTrendChart({ series, seriesLabel }: MultiSeriesTrendC
         ))}
       </ul>
 
-      {hoveredYear !== undefined && (
-        <div className="chart-tooltip">
-          {nonEmpty.map((item) => {
-            const value = valueAtYear(item.points, hoveredYear);
-            if (value === undefined) return null;
-            return (
-              <strong key={item.label}>{item.label}: {formatMoney(value)}</strong>
-            );
-          })}
-          <span>{hoveredYear}</span>
-        </div>
-      )}
+      <div className={`chart-tooltip${hoveredYear !== undefined ? "" : " chart-tooltip--hidden"}`}>
+        {nonEmpty.map((item) => {
+          const value = hoveredYear !== undefined ? valueAtYear(item.points, hoveredYear) : undefined;
+          return (
+            <strong key={item.label}>{item.label}: {value !== undefined ? formatMoney(value) : " "}</strong>
+          );
+        })}
+        <span>{hoveredYear ?? " "}</span>
+      </div>
     </div>
   );
 }
