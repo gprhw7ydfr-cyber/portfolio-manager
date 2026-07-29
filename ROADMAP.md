@@ -294,6 +294,14 @@ The user noticed hovering over any line graph (`TrendLineChart`, `MultiSeriesTre
 
 Verified: `tsc`/`eslint` clean. Browser: measured the Dashboard's "Projected net worth" card's `getBoundingClientRect().height` before and after dispatching a real hover event on its chart — identical (682.5625px both times) — while the tooltip correctly became visible with live data ("$119,060 · Projected net worth · 2031"). Confirmed on a fresh page load (never hovered) that the tooltip element exists in the DOM, is `visibility: hidden`, and already occupies its full reserved height (55.6px) — proving the space is genuinely pre-existing rather than appearing on first hover. `MultiSeriesTrendChart`/`NetWorthFanChart` use the identical pattern; not separately re-verified live since no scenario/Monte Carlo data existed in the test portfolio to render them against, but both pass `tsc`/`eslint` and match the already-verified logic exactly.
 
+## Phase 19 — Properties tab always opens to its list, not the last-viewed property (done)
+
+The user noticed that going Properties → an individual property → Dashboard → Properties again landed back on that same property's detail page instead of the property list. Root cause: `App.tsx` hoists `selectedPropertyId` to the top-level `AppContent` component (so it can be passed down to both `PropertyList` and `PropertyDetail`), which means it lives above the `view` switch and is never reset just because `view` changes away from `"properties"` and back — unlike `ScenarioList`/`MortgageScenarioList`, which each manage their own `selectedScenarioId` internally and get fully unmounted/remounted (with fresh `useState` initial values) every time `view` swaps away from `"strategies"`/`"mortgage-lab"`, so those two tabs already reset correctly with no code changes needed.
+
+- **Fix**: `goToProperties()` (the Properties nav button's handler) now calls `setSelectedPropertyId(null)` before `setView("properties")`, so clicking the tab always clears any prior selection. Navigating *within* Properties (selecting a card, using "Back to properties") is untouched — only the top-level nav button forces the reset.
+
+Verified: `tsc`/`eslint` clean. Browser: selected Property 1 from the Properties list, confirmed its detail page rendered, navigated to Dashboard, then clicked "Properties" again and confirmed it landed on the property list ("Your properties.") rather than reopening Property 1's detail page. Confirmed Strategies and Mortgage Lab already behaved correctly by inspection of their self-contained state (no lifted selection in `App.tsx` for either).
+
 ## Later / not yet scoped
 
 Phase 8 remainder — keyboard shortcuts, search/filtering, drag-and-drop dashboard widgets, print-friendly reports, and a Developer Mode raw-JSON/debug-state panel (the Reports phase's JSON export already covers that need for a technical user).

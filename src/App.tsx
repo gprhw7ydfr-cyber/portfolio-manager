@@ -20,6 +20,7 @@ function AppContent() {
   const [developerMode, setDeveloperMode] = useDeveloperMode();
 
   const goToProperties = () => {
+    setSelectedPropertyId(null);
     setView("properties");
   };
 
