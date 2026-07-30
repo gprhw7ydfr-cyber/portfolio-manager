@@ -65,7 +65,7 @@ export function ScenarioDetail({ portfolio, scenario, onChange, onBack }: Scenar
   return (
     <div className="scenario-detail">
       <div className="calculator__heading">
-        <div>
+        <div className="scenario-heading-text">
           <p className="eyebrow">Strategy</p>
           <h2>
             <input className="split-card__name scenario-name" aria-label="Scenario name" value={scenario.name} onChange={(event) => onChange({ name: event.target.value })} />

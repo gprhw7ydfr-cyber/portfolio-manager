@@ -251,11 +251,16 @@ select { border: 1px solid var(--border-input); border-radius: 9px; padding: 10p
    the whole card and cause visible flicker on every hover. */
 .chart-tooltip--hidden { visibility: hidden; }
 .scenario-list-page { display: grid; gap: 40px; }
+.scenario-list-actions { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; }
 .scenario-card { position: relative; gap: 8px; }
 .scenario-card__select { display: grid; gap: 4px; text-align: left; border: 0; background: transparent; padding: 0; width: 100%; }
 .scenario-card__delete { justify-self: start; padding-left: 0; }
 .scenario-detail { display: grid; gap: 32px; }
-.scenario-name { font-size: inherit; font-weight: inherit; letter-spacing: inherit; }
+/* Overrides .split-card__name's 260px cap — that width suits the narrow split-name field inside
+   a SplitCard, but this same input doubles as the page's h2 title and needs to use the full
+   width its (flex-grow) heading container gives it, or a long name silently gets clipped. */
+.scenario-name { flex: 1; min-width: 0; max-width: none; width: 100%; font-size: inherit; font-weight: inherit; letter-spacing: inherit; }
+.scenario-heading-text { flex: 1; min-width: 0; }
 .scenario-rate-override { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
 .scenario-rate-override input[type="checkbox"] { width: 16px; height: 16px; }
 .strategy-event-row { grid-template-columns: unset; display: flex; flex-wrap: wrap; align-items: end; gap: 10px 16px; }

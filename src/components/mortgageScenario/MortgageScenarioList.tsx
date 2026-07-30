@@ -2,6 +2,7 @@ import { useState } from "react";
 import { usePortfolio } from "../../store/usePortfolio";
 import { updateById } from "../../domain/shared/updateById";
 import { createDefaultMortgageScenario } from "../../domain/mortgage/createDefaultMortgageScenario";
+import { createDefaultSplit } from "../../domain/mortgage/createDefaultSplit";
 import type { MortgageScenario } from "../../domain/mortgage/MortgageScenario";
 import type { MortgageLiability } from "../../domain/mortgage/MortgageLiability";
 import { isPropertyAsset } from "../../domain/property/PropertyAsset";
@@ -17,14 +18,29 @@ export function MortgageScenarioList() {
 
   const mortgages = portfolio.liabilities.filter((liability): liability is MortgageLiability => liability.type === "mortgage");
   const unattachedMortgages = mortgages.filter((mortgage) => !mortgage.propertyId);
+  const attachedMortgages = mortgages.filter((mortgage) => mortgage.propertyId);
   const propertiesWithoutMortgage = portfolio.assets
     .filter(isPropertyAsset)
     .filter((property) => !mortgages.some((mortgage) => mortgage.propertyId === property.id));
 
-  const addScenario = () => {
-    const scenario = createDefaultMortgageScenario(`Mortgage scenario ${portfolio.mortgageScenarios.length + 1}`);
+  const addScenario = (source?: MortgageLiability) => {
+    const scenario = createDefaultMortgageScenario(
+      source ? `${source.name} copy` : `Mortgage scenario ${portfolio.mortgageScenarios.length + 1}`,
+      source
+        ? {
+            frequency: source.frequency,
+            startDate: source.startDate,
+            splits: source.splits.map((split) => createDefaultSplit(split.name, split)),
+          }
+        : undefined,
+    );
     setPortfolio((current) => ({ ...current, mortgageScenarios: [...current.mortgageScenarios, scenario] }));
     setSelectedScenarioId(scenario.id);
+  };
+
+  const importAttachedMortgage = (mortgageId: string) => {
+    const mortgage = attachedMortgages.find((candidate) => candidate.id === mortgageId);
+    if (mortgage) addScenario(mortgage);
   };
 
   const updateScenario = (id: string, changes: Partial<MortgageScenario>) => {
@@ -75,6 +91,26 @@ export function MortgageScenarioList() {
           </div>
         </div>
 
+        <div className="scenario-list-actions">
+          <button className="button button--secondary" onClick={() => addScenario()}>+ New mortgage scenario</button>
+          {attachedMortgages.length > 0 && (
+            <label className="rate-type">
+              <span>or import an attached mortgage</span>
+              <select defaultValue="" onChange={(event) => { if (event.target.value) importAttachedMortgage(event.target.value); }}>
+                <option value="" disabled>Choose a mortgage&hellip;</option>
+                {attachedMortgages.map((mortgage) => {
+                  const property = portfolio.assets.find((asset) => asset.id === mortgage.propertyId);
+                  return (
+                    <option key={mortgage.id} value={mortgage.id}>
+                      {mortgage.name}{property ? ` (${property.name})` : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+          )}
+        </div>
+
         {portfolio.mortgageScenarios.length === 0 ? (
           <p className="payment-plan__empty">No mortgage scenarios yet.</p>
         ) : (
@@ -94,8 +130,6 @@ export function MortgageScenarioList() {
             })}
           </div>
         )}
-
-        <button className="button button--secondary" onClick={addScenario}>+ New mortgage scenario</button>
       </section>
 
       {unattachedMortgages.length > 0 && (
