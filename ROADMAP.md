@@ -373,6 +373,15 @@ Verified: ran `npx tauri build`, producing both a `.msi` (2.9MB) and an NSIS `.e
 
 Not yet done, left for when it's actually needed: code signing (discussed separately — a paid CA certificate or Microsoft's cheaper Trusted Signing service; without it, Windows SmartScreen will show an "Unknown publisher" warning on first run, which testers can dismiss via "More info" → "Run anyway"), and custom app icons (currently the default Tauri logo placeholders).
 
+## Phase 27 — Seed a truly empty portfolio on first launch (done)
+
+Testers installing the fresh Tauri build were seeing a $500,000 "Main Mortgage" sitting unattached in the Mortgage Lab, left over from `createDefaultPortfolio.ts`'s original demo seed data (from back when this was a single-mortgage calculator, before properties/portfolios existed). The user wants a genuine blank slate — nothing until they add their first property or mortgage themselves.
+
+- **`createDefaultPortfolio.ts`**: `liabilities` now starts as `[]` instead of seeding a seeded "Main Mortgage" split; removed the now-unused `createDefaultSplit` import. `assets`, `scenarios`, and `mortgageScenarios` were already empty arrays. This function only ever runs once — the first time the app loads with nothing in localStorage yet (`PortfolioContext.tsx`: `loadPortfolio() ?? createDefaultPortfolio()`) — so this has no effect on anyone who's already used the app and has real data saved.
+- **`eslint.config.js`**: added `src-tauri` to `globalIgnores`, alongside the pre-existing `dist` entry. This was a latent gap exposed while verifying this change — `npx eslint .` started erroring on a minified JS blob generated inside `src-tauri/target/`'s build cache (Rust/Cargo build artifacts, not source we own or lint).
+
+Verified: `tsc`/`eslint` clean. Browser: cleared localStorage entirely to simulate a fresh install, confirmed the Dashboard shows a genuine $0-across-the-board zero state ("No properties recorded yet.", "No assets recorded yet.") and the Mortgage Lab shows only "No mortgage scenarios yet." with no "Unattached mortgages" section at all. Restored the known-good baseline test portfolio afterward. Rebuilt the Tauri installer (`src-tauri/target/release/bundle/`) with this fix included, since the whole point was the fresh-install experience testers actually see.
+
 ## Later / not yet scoped
 
 Phase 8 remainder — keyboard shortcuts, search/filtering, drag-and-drop dashboard widgets, print-friendly reports, and a Developer Mode raw-JSON/debug-state panel (the Reports phase's JSON export already covers that need for a technical user).
