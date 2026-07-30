@@ -25,14 +25,17 @@ interface MetricConfig {
   getValue: (year: ProjectionYear) => number;
   formatValue: (value: number) => string;
   formatCompactValue: (value: number) => string;
+  /** Axis scale for the degenerate all-zero case (e.g. no property value/cash invested yet) —
+   *  the money default of 100 reads as an absurd "10000%" once run through a percent formatter. */
+  flatFallbackExtent: number;
 }
 
 const METRICS: Record<ComparisonMetric, MetricConfig> = {
-  netWorth: { label: "Net worth", seriesLabel: "Net worth", getValue: (year) => year.netWorth, formatValue: formatMoney, formatCompactValue: formatCompactMoney },
-  yield: { label: "Gross rental yield", seriesLabel: "Gross rental yield", getValue: (year) => year.grossRentalYield, formatValue: percent, formatCompactValue: percent },
-  cashOnCash: { label: "Cash-on-Cash Return", seriesLabel: "Cash-on-Cash Return", getValue: (year) => year.cashOnCashReturn, formatValue: percent, formatCompactValue: percent },
-  dscr: { label: "DSCR", seriesLabel: "DSCR", getValue: (year) => year.dscr, formatValue: multiplier, formatCompactValue: multiplier },
-  roi: { label: "ROI", seriesLabel: "Cumulative ROI", getValue: (year) => year.cumulativeRoi, formatValue: percent, formatCompactValue: percent },
+  netWorth: { label: "Net worth", seriesLabel: "Net worth", getValue: (year) => year.netWorth, formatValue: formatMoney, formatCompactValue: formatCompactMoney, flatFallbackExtent: 100 },
+  yield: { label: "Gross rental yield", seriesLabel: "Gross rental yield", getValue: (year) => year.grossRentalYield, formatValue: percent, formatCompactValue: percent, flatFallbackExtent: 1 },
+  cashOnCash: { label: "Cash-on-Cash Return", seriesLabel: "Cash-on-Cash Return", getValue: (year) => year.cashOnCashReturn, formatValue: percent, formatCompactValue: percent, flatFallbackExtent: 1 },
+  dscr: { label: "DSCR", seriesLabel: "DSCR", getValue: (year) => year.dscr, formatValue: multiplier, formatCompactValue: multiplier, flatFallbackExtent: 1 },
+  roi: { label: "ROI", seriesLabel: "Cumulative ROI", getValue: (year) => year.cumulativeRoi, formatValue: percent, formatCompactValue: percent, flatFallbackExtent: 1 },
 };
 
 export function ScenarioComparison({ portfolio, scenario }: ScenarioComparisonProps) {
@@ -139,6 +142,7 @@ export function ScenarioComparison({ portfolio, scenario }: ScenarioComparisonPr
         seriesLabel={selected.seriesLabel}
         formatValue={selected.formatValue}
         formatCompactValue={selected.formatCompactValue}
+        flatFallbackExtent={selected.flatFallbackExtent}
         series={[
           { label: "Baseline", color: categorical.blue, points: baselineYears.map((year) => ({ year: year.year, value: selected.getValue(year) })) },
           { label: scenario.name, color: categorical.orange, points: scenarioYears.map((year) => ({ year: year.year, value: selected.getValue(year) })) },

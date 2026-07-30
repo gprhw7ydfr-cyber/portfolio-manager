@@ -11,6 +11,19 @@ interface ReportViewProps {
   onBack: () => void;
 }
 
+const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
+const multiplier = (value: number) => `${value.toFixed(2)}x`;
+
+/** Only "money" (the default) needs no override — MultiSeriesTrendChart already defaults to
+ *  money formatting when these props are omitted. `flatFallbackExtent` matters too: the money
+ *  default of 100 reads as an absurd "10000%" once run through a percent formatter on an
+ *  all-zero series (e.g. no property value/cash invested yet). */
+function chartFormatters(format: "money" | "percent" | "multiplier" | undefined) {
+  if (format === "percent") return { formatValue: percent, formatCompactValue: percent, flatFallbackExtent: 1 };
+  if (format === "multiplier") return { formatValue: multiplier, formatCompactValue: multiplier, flatFallbackExtent: 1 };
+  return {};
+}
+
 export function ReportView({ report, onBack }: ReportViewProps) {
   const [theme] = useTheme();
   const paletteColors = Object.values(getCategorical(theme));
@@ -78,6 +91,7 @@ export function ReportView({ report, onBack }: ReportViewProps) {
                 color: paletteColors[index % paletteColors.length],
                 points: series.points,
               }))}
+              {...chartFormatters(section.chart.format)}
             />
           )}
           {section.chart?.kind === "bar" && <PropertyValuesChart properties={section.chart.values} />}

@@ -17,6 +17,10 @@ interface MultiSeriesTrendChartProps {
    *  (e.g. yield, ROI) without changing any existing money-formatted caller. */
   formatValue?: (value: number) => string;
   formatCompactValue?: (value: number) => string;
+  /** Axis scale used only when every value is exactly 0 (nothing to derive a scale from) — sized
+   *  for money by default. A percent-formatted series with a flat-zero domain should pass a
+   *  fraction like 1 (100%), not the money default, or the axis reads as an absurd "10000%". */
+  flatFallbackExtent?: number;
 }
 
 const VIEW_WIDTH = 600;
@@ -38,7 +42,7 @@ function valueAtYear(points: AnnualPoint[], year: number): number | undefined {
   return points.find((point) => point.year === year)?.value;
 }
 
-export function MultiSeriesTrendChart({ series, seriesLabel, formatValue = formatMoney, formatCompactValue = formatCompactMoney }: MultiSeriesTrendChartProps) {
+export function MultiSeriesTrendChart({ series, seriesLabel, formatValue = formatMoney, formatCompactValue = formatCompactMoney, flatFallbackExtent = 100 }: MultiSeriesTrendChartProps) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [theme] = useTheme();
   const chartInk = getChartInk(theme);
@@ -62,7 +66,7 @@ export function MultiSeriesTrendChart({ series, seriesLabel, formatValue = forma
   const rawMin = Math.min(...allValues, 0);
   const topExtentRaw = niceStep(rawMax);
   const bottomExtent = niceStep(-rawMin);
-  const topExtent = topExtentRaw > 0 || bottomExtent > 0 ? topExtentRaw : 100;
+  const topExtent = topExtentRaw > 0 || bottomExtent > 0 ? topExtentRaw : flatFallbackExtent;
   const totalExtent = topExtent + bottomExtent;
 
   const plotHeight = BASELINE - PLOT_TOP;

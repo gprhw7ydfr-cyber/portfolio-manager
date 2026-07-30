@@ -23,7 +23,7 @@ export interface ReportNamedValue {
 /** Builders stay theme-agnostic — series/values carry no color, `ReportView` assigns colors at
  *  render time from the current theme's categorical palette, same as the live comparison views. */
 export type ReportChart =
-  | { kind: "trend"; seriesLabel: string; series: ReportChartSeries[] }
+  | { kind: "trend"; seriesLabel: string; series: ReportChartSeries[]; format?: "money" | "percent" | "multiplier" }
   | { kind: "bar"; values: ReportNamedValue[] }
   | { kind: "allocation"; slices: AllocationSlice[] };
 
