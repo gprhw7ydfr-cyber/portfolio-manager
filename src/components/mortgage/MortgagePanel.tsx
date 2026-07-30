@@ -21,6 +21,9 @@ interface MortgagePanelProps<T extends MortgageStructure> {
   /** Set when the caller renders its own SummaryCard elsewhere on the page (e.g. at the top,
    *  above the split editors) instead of in its usual spot here. */
   hideSummary?: boolean;
+  /** Set when the caller doesn't want extra-payment planning here — e.g. the property page,
+   *  where that kind of what-if experimentation belongs in the Mortgage Lab instead. */
+  hideExtraPaymentAdvisor?: boolean;
 }
 
 export function MortgagePanel<T extends MortgageStructure>({
@@ -30,6 +33,7 @@ export function MortgagePanel<T extends MortgageStructure>({
   title = "Plan your lending, split by split.",
   subtitle = "Adjust each loan independently and see the combined position below.",
   hideSummary = false,
+  hideExtraPaymentAdvisor = false,
 }: MortgagePanelProps<T>) {
   const result = useMemo(
     () => MortgageEngine.simulate(toMortgageInput(mortgage, cashAccounts)),
@@ -126,7 +130,7 @@ export function MortgagePanel<T extends MortgageStructure>({
 
       <AmortizationDetail schedule={combinedSchedule} label="Combined mortgage" />
 
-      <ExtraPaymentAdvisor mortgage={mortgage} assets={cashAccounts} />
+      {!hideExtraPaymentAdvisor && <ExtraPaymentAdvisor mortgage={mortgage} assets={cashAccounts} />}
     </section>
   );
 }

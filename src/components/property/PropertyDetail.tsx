@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { usePortfolio } from "../../store/usePortfolio";
 import { updateById } from "../../domain/shared/updateById";
 import { createDefaultSplit } from "../../domain/mortgage/createDefaultSplit";
@@ -36,6 +37,7 @@ const typeLabel: Record<PropertyType, string> = {
 
 export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
   const [portfolio, setPortfolio] = usePortfolio();
+  const [showMortgageDetails, setShowMortgageDetails] = useState(false);
 
   const property = portfolio.assets.find(
     (asset): asset is PropertyAsset => asset.id === propertyId && isPropertyAsset(asset),
@@ -141,8 +143,55 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
         <button className="text-button text-button--danger" onClick={deleteProperty}>Delete property</button>
       </div>
 
-      {attachedMortgage && mortgageResult && (
-        <SummaryCard result={mortgageResult} frequency={attachedMortgage.frequency} combinedSchedule={combinedSchedule} />
+      {attachedMortgage && mortgageResult ? (
+        <div className="property-section">
+          {attachedMortgage.sourceScenarioId && (
+            <p className="muted">
+              Built from Mortgage Lab scenario: {portfolio.mortgageScenarios.find((scenario) => scenario.id === attachedMortgage.sourceScenarioId)?.name ?? "(deleted)"}
+            </p>
+          )}
+          <SummaryCard result={mortgageResult} frequency={attachedMortgage.frequency} combinedSchedule={combinedSchedule} />
+          <div className="payment-plan__heading">
+            <span className="muted">Splits, rate strategy, and amortization schedule.</span>
+            <button className="text-button" onClick={() => setShowMortgageDetails((current) => !current)}>
+              {showMortgageDetails ? "Hide mortgage details" : "Show mortgage details"}
+            </button>
+          </div>
+          {showMortgageDetails && (
+            <MortgagePanel
+              mortgage={attachedMortgage}
+              cashAccounts={cashAccounts}
+              onChange={(changes) => updateMortgage(attachedMortgage.id, changes)}
+              title={attachedMortgage.name}
+              subtitle="Secured against this property."
+              hideSummary
+              hideExtraPaymentAdvisor
+            />
+          )}
+        </div>
+      ) : (
+        <div className="property-section">
+          <h4>Loan</h4>
+          <div className="property-mortgage-picker">
+            <p className="muted">No mortgage attached to this property yet.</p>
+            <div className="property-mortgage-picker__actions">
+              {unattachedMortgages.length > 0 && (
+                <select
+                  defaultValue=""
+                  onChange={(e) => {
+                    if (e.target.value) updateMortgage(e.target.value, { propertyId });
+                  }}
+                >
+                  <option value="" disabled>Attach an existing mortgage&hellip;</option>
+                  {unattachedMortgages.map((mortgage) => (
+                    <option key={mortgage.id} value={mortgage.id}>{mortgage.name}</option>
+                  ))}
+                </select>
+              )}
+              <button className="button button--secondary" onClick={createMortgage}>+ Add new mortgage</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {propertyCashFlow && (
@@ -339,46 +388,6 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
         )}
       </div>
 
-      <div className="property-section">
-        <h4>Mortgage</h4>
-        {attachedMortgage ? (
-          <>
-            {attachedMortgage.sourceScenarioId && (
-              <p className="muted">
-                Built from Mortgage Lab scenario: {portfolio.mortgageScenarios.find((scenario) => scenario.id === attachedMortgage.sourceScenarioId)?.name ?? "(deleted)"}
-              </p>
-            )}
-            <MortgagePanel
-              mortgage={attachedMortgage}
-              cashAccounts={cashAccounts}
-              onChange={(changes) => updateMortgage(attachedMortgage.id, changes)}
-              title={attachedMortgage.name}
-              subtitle="Secured against this property."
-              hideSummary
-            />
-          </>
-        ) : (
-          <div className="property-mortgage-picker">
-            <p className="muted">No mortgage attached to this property yet.</p>
-            <div className="property-mortgage-picker__actions">
-              {unattachedMortgages.length > 0 && (
-                <select
-                  defaultValue=""
-                  onChange={(e) => {
-                    if (e.target.value) updateMortgage(e.target.value, { propertyId });
-                  }}
-                >
-                  <option value="" disabled>Attach an existing mortgage&hellip;</option>
-                  {unattachedMortgages.map((mortgage) => (
-                    <option key={mortgage.id} value={mortgage.id}>{mortgage.name}</option>
-                  ))}
-                </select>
-              )}
-              <button className="button button--secondary" onClick={createMortgage}>+ Add new mortgage</button>
-            </div>
-          </div>
-        )}
-      </div>
     </section>
   );
 }
