@@ -4,6 +4,7 @@ import type { BuyPropertyEvent, RefinanceEvent, IncreaseRepaymentsEvent } from "
 import { buyEventPropertyId, buyEventSplitId } from "./StrategyEvent";
 import { isPropertyAsset } from "../property/PropertyAsset";
 import { occupancyFraction } from "../property/calculatePropertyIncome";
+import { estimateCashInvested } from "../dashboard/calculateInvestmentMetrics";
 import { isCashAccount } from "../cash/CashAccount";
 import type { MortgageSplit } from "../mortgage/MortgageSplit";
 import type { MortgageInput, RepaymentFrequency } from "../mortgage/MortgageInput";
@@ -26,6 +27,22 @@ export interface ProjectionYear {
    *  week-to-week rate. Approximated as the most conservative (smallest) ownership fraction among
    *  that year's active properties, rounded to whole weeks — exact for a single-property portfolio. */
   weeksInYear: number;
+  totalPropertyValue: number;
+  /** Net operating income ÷ total property value — same definition as `calculateDashboardStats.ts`'s
+   *  "Gross rental yield" and `calculatePropertyYield` (`calculatePropertyIncome.ts`). 0 when there's
+   *  no property value yet. */
+  grossRentalYield: number;
+  /** Net operating income ÷ that year's mortgage repayment. 0 when there's no debt service that
+   *  year — same "0 = no mortgage" convention as `calculateInvestmentMetrics.ts`'s `InvestmentMetrics.dscr`. */
+  dscr: number;
+  /** That year's annual cash flow ÷ `cashInvestedBaseline` (today's real cash invested, held constant
+   *  across the whole projection — see `cashInvestedBaseline` below). 0 when nothing's invested yet. */
+  cashOnCashReturn: number;
+  /** Cumulative gain since the projection's first year ÷ `cashInvestedBaseline` — the same "gain ÷
+   *  cash invested" shape as `calculatePortfolioInvestmentMetrics`'s ROI figures, extended to a full
+   *  year-by-year series using each year's actual projected net worth instead of one end-of-horizon
+   *  number. 0 when nothing's invested yet. */
+  cumulativeRoi: number;
 }
 
 interface PropertyProjection {
@@ -316,6 +333,13 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
     .filter((asset) => !isPropertyAsset(asset) && !isCashAccount(asset))
     .reduce((sum, asset) => sum + asset.currentValue, 0);
 
+  // Held constant across the whole projection — same simplification
+  // `calculatePortfolioInvestmentMetrics`'s own forward-projection ROI already makes. Capital
+  // injected later via buy-property events' deposits isn't added to this denominator.
+  const cashInvestedBaseline = portfolio.assets
+    .filter(isPropertyAsset)
+    .reduce((sum, property) => sum + (property.cashInvested ?? estimateCashInvested(property, portfolio)), 0);
+
   const years: ProjectionYear[] = [];
 
   for (let offset = 0; offset <= projectionYears; offset += 1) {
@@ -374,14 +398,26 @@ export function projectPortfolio(portfolio: Portfolio, scenario: Scenario, asOf:
       ? Math.max(1, Math.round(52 * Math.min(...activeProperties.map((p) => p.currentYearOwnershipFraction))))
       : 52;
 
+    const netWorth = totalAssets - totalLiabilities;
+    const noiAnnual = propertyIncome - propertyExpenses;
+    const grossRentalYield = totalPropertyValue > 0 ? noiAnnual / totalPropertyValue : 0;
+    const dscr = mortgageRepayment > 0 ? noiAnnual / mortgageRepayment : 0;
+    const cashOnCashReturn = cashInvestedBaseline > 0 ? annualCashFlow / cashInvestedBaseline : 0;
+    const cumulativeRoi = cashInvestedBaseline > 0 ? (netWorth - (years[0]?.netWorth ?? netWorth)) / cashInvestedBaseline : 0;
+
     years.push({
       year: calendarYear,
-      netWorth: totalAssets - totalLiabilities,
+      netWorth,
       totalAssets,
       totalLiabilities,
       annualCashFlow,
       totalInterestPaid,
       weeksInYear,
+      totalPropertyValue,
+      grossRentalYield,
+      dscr,
+      cashOnCashReturn,
+      cumulativeRoi,
     });
   }
 
