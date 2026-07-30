@@ -10,9 +10,11 @@ import { isCashAccount } from "../../domain/cash/CashAccount";
 import { numberFromInput, selectIfZero } from "../../domain/shared/numericInput";
 import { estimateCashInvested } from "../../domain/dashboard/calculateInvestmentMetrics";
 import { calculatePropertyCashFlow } from "../../domain/cashflow/calculatePropertyCashFlow";
+import { calculatePropertyYield } from "../../domain/property/calculatePropertyIncome";
 import { MortgagePanel } from "../mortgage/MortgagePanel";
 import { SummaryCard } from "../mortgage/SummaryCard";
 import { CashFlowSummaryCard } from "../cashflow/CashFlowSummaryCard";
+import { ResultCard } from "../mortgage/ResultCard";
 import { InvestmentMetricsPanel } from "../dashboard/InvestmentMetricsPanel";
 import { CapitalImprovementRow } from "./CapitalImprovementRow";
 import type { PropertyAsset, PropertyType, CapitalImprovement } from "../../domain/property/PropertyAsset";
@@ -24,6 +26,7 @@ interface PropertyDetailProps {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
 
 const typeLabel: Record<PropertyType, string> = {
   "residential-property": "Residential property",
@@ -143,7 +146,12 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
       )}
 
       {propertyCashFlow && (
-        <CashFlowSummaryCard summary={propertyCashFlow} eyebrow="Cash flow" title="This property's income, expenses, and cash flow" />
+        <>
+          <div className="dashboard-stats">
+            <ResultCard label="Gross rental yield" value={percent(calculatePropertyYield(property))} supportingText="Net operating income / current value" />
+          </div>
+          <CashFlowSummaryCard summary={propertyCashFlow} eyebrow="Cash flow" title="This property's income, expenses, and cash flow" />
+        </>
       )}
 
       <div className="property-section">

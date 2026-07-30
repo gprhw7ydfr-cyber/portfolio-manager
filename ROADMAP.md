@@ -308,6 +308,17 @@ The user found "Share of remainder" (one of the three refix redistribution modes
 
 Verified: `tsc`/`eslint` clean. Browser: created a temporary Mortgage Lab scenario, confirmed the Mode dropdown now reads "Ratio of remainder" and, after selecting it, the input label beneath also reads "Ratio of remainder". Test scenario deleted afterward.
 
+## Phase 21 — Show gross rental yield per property, consolidated, and on the property detail page (done)
+
+The user wanted each property card on the Properties list to show its own yield alongside its value, plus a consolidated portfolio-wide yield next to the existing consolidated cash flow — and, in a follow-up mid-turn message, the same yield stat added to the individual property page's own cash flow section too.
+
+- **`calculatePropertyIncome.ts`** gained two new exports: `annualNetOperatingIncome(property)` (occupancy-adjusted rent + other income − every expense line — the same NOI math `calculateDashboardStats.ts`'s existing "Gross rental yield" figure already uses, just not previously factored out) and `calculatePropertyYield(property)` (NOI ÷ current value, guarded to 0 rather than Infinity/NaN when a property has no recorded value yet).
+- **`PropertyCard.tsx`**: added a `property-card__yield` line beneath the value ("X.X% yield"), with a matching small CSS rule in `index.css`.
+- **`PropertyList.tsx`**: added a consolidated gross rental yield `ResultCard` (sum of NOI across every property ÷ sum of every property's current value) directly above the existing `CashFlowSummaryCard`, inside the same "Cash flow" section — not a plain average of each property's own yield, since a large low-yield property shouldn't be weighted the same as a small high-yield one.
+- **`PropertyDetail.tsx`** (the mid-turn addition): added the same single-property `ResultCard` ("Gross rental yield") directly above the "This property's income, expenses, and cash flow" `CashFlowSummaryCard`, reusing `calculatePropertyYield` on just that one property.
+
+Verified: `tsc`/`eslint` clean. Browser: with the baseline's zero-value test property, confirmed both card and consolidated yield correctly show 0.0% (not NaN/Infinity). Temporarily set the property to $500,000 with $2,000 rates + $1,500 insurance and confirmed the card yield, the Properties-list consolidated yield, and the property detail page's yield all showed 5.5%, matching a hand calculation of `(31,200 − 3,500) / 500,000 = 5.54%` exactly across all three locations. Test data restored to baseline afterward.
+
 ## Later / not yet scoped
 
 Phase 8 remainder — keyboard shortcuts, search/filtering, drag-and-drop dashboard widgets, print-friendly reports, and a Developer Mode raw-JSON/debug-state panel (the Reports phase's JSON export already covers that need for a technical user).

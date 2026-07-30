@@ -7,13 +7,17 @@ import { isCashAccount } from "../../domain/cash/CashAccount";
 import { createDefaultCashAccount } from "../../domain/cash/createDefaultCashAccount";
 import { calculateCashFlow } from "../../domain/cashflow/calculateCashFlow";
 import { calculateDashboardCharts } from "../../domain/dashboard/calculateDashboardCharts";
+import { annualNetOperatingIncome } from "../../domain/property/calculatePropertyIncome";
 import type { CashAccount } from "../../domain/cash/CashAccount";
 import { PropertyCard } from "./PropertyCard";
 import { CashAccountCard } from "../cash/CashAccountCard";
 import { CashFlowSummaryCard } from "../cashflow/CashFlowSummaryCard";
+import { ResultCard } from "../mortgage/ResultCard";
 import { TrendLineChart } from "../dashboard/TrendLineChart";
 import { getCategorical } from "../dashboard/chartPalette";
 import { useTheme } from "../../store/useTheme";
+
+const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
 
 interface PropertyListProps {
   onSelectProperty: (id: string) => void;
@@ -28,6 +32,9 @@ export function PropertyList({ onSelectProperty }: PropertyListProps) {
   const cashAccounts = portfolio.assets.filter(isCashAccount);
   const cashFlowSummary = useMemo(() => calculateCashFlow(portfolio), [portfolio]);
   const charts = useMemo(() => calculateDashboardCharts(portfolio), [portfolio]);
+  const totalPropertyValue = properties.reduce((sum, property) => sum + property.currentValue, 0);
+  const totalNoi = properties.reduce((sum, property) => sum + annualNetOperatingIncome(property), 0);
+  const consolidatedYield = totalPropertyValue > 0 ? totalNoi / totalPropertyValue : 0;
 
   const ownership = portfolio.entities.length > 0
     ? [{ entityId: portfolio.entities[0].id, percentage: 100 }]
@@ -110,6 +117,9 @@ export function PropertyList({ onSelectProperty }: PropertyListProps) {
             <h2>Your property portfolio's cash flow.</h2>
             <p className="muted">Rent and expenses across every property, plus mortgage repayments.</p>
           </div>
+        </div>
+        <div className="dashboard-stats">
+          <ResultCard label="Consolidated gross rental yield" value={percent(consolidatedYield)} supportingText="Net operating income / total property value" />
         </div>
         <CashFlowSummaryCard summary={cashFlowSummary} />
       </section>

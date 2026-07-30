@@ -202,6 +202,7 @@ select { border: 1px solid var(--border-input); border-radius: 9px; padding: 10p
 .property-card__type { text-transform: uppercase; letter-spacing: .1em; font-size: .68rem; font-weight: 750; color: var(--ink-eyebrow); }
 .property-card h3 { margin: 2px 0 0; font-size: 1.1rem; }
 .property-card__value { margin-top: 8px; font-size: 1.2rem; letter-spacing: -.025em; }
+.property-card__yield { font-size: .8rem; color: var(--ink-muted); }
 .other-mortgages { border-top: 1px solid var(--border-soft); padding-top: 32px; }
 .property-detail { display: grid; gap: 22px; }
 .property-detail__heading { display: flex; justify-content: space-between; gap: 24px; align-items: end; }
