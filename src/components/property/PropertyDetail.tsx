@@ -135,9 +135,11 @@ export function PropertyDetail({ propertyId, onBack }: PropertyDetailProps) {
       <button className="text-button" onClick={onBack}>&larr; Back to properties</button>
 
       <div className="property-detail__heading">
-        <div>
+        <div className="scenario-heading-text">
           <p className="eyebrow">{typeLabel[property.type]}</p>
-          <h2>{property.name}</h2>
+          <h2>
+            <input className="split-card__name scenario-name" aria-label="Property nickname" value={property.name} onChange={(e) => updateProperty({ name: e.target.value })} />
+          </h2>
           <p className="muted">{ownerNames || "No owner assigned"}</p>
         </div>
         <button className="text-button text-button--danger" onClick={deleteProperty}>Delete property</button>

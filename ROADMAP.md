@@ -392,6 +392,14 @@ The user wanted a Mac installer too, matching the Windows Tauri build. Since mac
 
 Verified: `tsc`/`eslint`/`npm run build` all clean with the new `base` setting; confirmed `dist/index.html` now references `./assets/...` (relative) instead of `/assets/...`. Served the build from a local subpath matching GitHub Pages' layout and confirmed the app rendered and worked identically to the root-served dev version. After the user enabled Pages (Settings → Pages → Source: GitHub Actions — a one-time manual step only the account owner can make), the workflow ran end to end: `build` and `deploy` jobs both succeeded, confirmed via GitHub's API and by loading the live URL directly (`https://gprhw7ydfr-cyber.github.io/portfolio-manager/`) — same clean zero-state Dashboard as local dev, no console errors. Two "Node.js 20 is deprecated" annotations on the run are GitHub-side noise about the internal runtime Actions uses to execute third-party action code, unrelated to and unaffected by anything in this repo — confirmed harmless, nothing to fix.
 
+## Phase 29 — Edit a property's nickname directly at the top of its page (done)
+
+The property page's heading only ever showed the nickname as static text (`<h2>{property.name}</h2>`); renaming a property required scrolling down to the "Nickname" field in the General section. Both Mortgage Lab scenarios and Strategies already support editing their name right in the page heading, so the user wanted properties to work the same way for consistency.
+
+- **`PropertyDetail.tsx`**: the heading's `<h2>{property.name}</h2>` became an editable `<input>` bound to `property.name` via the existing `updateProperty` handler — same `split-card__name scenario-name` classes and `scenario-heading-text` wrapper div already used (and width-fixed in Phase 25) for the Mortgage Lab/Strategies name inputs, so it inherits the same full-width, no-clipping behavior for free. The General section's original "Nickname" field is untouched and stays in sync automatically, since both are just two inputs bound to the same `property.name` state — no new state, no duplication logic needed.
+
+Verified: `tsc`/`eslint` clean. Browser: added a test property, confirmed the new top-of-page field showed its name correctly, edited it there, and confirmed via the DOM that both the top field and the General section's "Nickname" field updated to the same value instantly. Navigated back to the Properties list and confirmed the card showed the renamed value, proving the change persisted through the store, not just local input state. Test property removed and the portfolio restored to its empty baseline afterward.
+
 ## Later / not yet scoped
 
 Phase 8 remainder — keyboard shortcuts, search/filtering, drag-and-drop dashboard widgets, print-friendly reports, and a Developer Mode raw-JSON/debug-state panel (the Reports phase's JSON export already covers that need for a technical user).
