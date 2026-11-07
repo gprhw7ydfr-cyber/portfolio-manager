@@ -400,6 +400,20 @@ The property page's heading only ever showed the nickname as static text (`<h2>{
 
 Verified: `tsc`/`eslint` clean. Browser: added a test property, confirmed the new top-of-page field showed its name correctly, edited it there, and confirmed via the DOM that both the top field and the General section's "Nickname" field updated to the same value instantly. Navigated back to the Properties list and confirmed the card showed the renamed value, proving the change persisted through the store, not just local input state. Test property removed and the portfolio restored to its empty baseline afterward.
 
+## Phase 30 — Installable on Android and iPhone as a Progressive Web App (done)
+
+The user wanted the app on their phone. Building native Android/iOS apps through Tauri was considered (it needs an Android SDK, or a Mac with Xcode plus a $99/year Apple Developer membership, and the macOS CI runner is still blocked per Phase 28). Making the existing GitHub Pages deployment a Progressive Web App was chosen instead, since it covers both phones with one change and no app-store fees.
+
+- **`vite-plugin-pwa`** (dev dependency) configured in `vite.config.ts`: generates `manifest.webmanifest` (name, `standalone` display, theme `#1e624a`, background `#f4f7f4`, relative `start_url`/`scope`/`id` so it works under the `/portfolio-manager/` Pages subpath) and a Workbox service worker that precaches the whole build, so the app opens and runs with no network. `registerType: 'autoUpdate'` means a new deploy is picked up on the next launch.
+- **`src/main.tsx`**: registers the service worker via `virtual:pwa-register`, except inside the Tauri desktop shell (`__TAURI_INTERNALS__`), which already bundles everything locally and doesn't need a cache that could go stale. `tsconfig.app.json` gained the `vite-plugin-pwa/client` types.
+- **`index.html`**: `apple-touch-icon`, `theme-color`, iOS home-screen meta tags (`apple-mobile-web-app-*`), `viewport-fit=cover`, and a proper `<title>` ("Portfolio Manager", was the template's "portfoliomanager").
+- **Icons** (`public/pwa-192.png`, `pwa-512.png`, `pwa-maskable-512.png`, `apple-touch-icon.png`): a white house with rising bars on the app's dark green, replacing the placeholder Tauri/Vite logos for the home screen. The maskable variant keeps the glyph inside Android's safe zone.
+- **Phone layout fix** (`index.css`): at ≤500px the five main tabs overflowed off the right edge (Mortgage Lab and Reports unreachable without sideways scrolling); they now wrap onto two rows.
+
+Verified: `tsc`/`eslint`/`npm run build` clean. Served `dist/` from a `/portfolio-manager/` subpath matching GitHub Pages and loaded it in Playwright with Pixel 7 and iPhone SE emulation: the service worker installed and took control, the manifest loaded, and with the network switched off a reload still rendered the full app with no console errors. Confirmed no horizontal page overflow at either phone width after the nav fix.
+
+Known follow-ups: report export uses a link-click download, which on iPhone opens a preview rather than saving; and the portfolio lives only in that phone's browser storage, so a JSON backup/restore option would protect against data loss.
+
 ## Later / not yet scoped
 
 Phase 8 remainder — keyboard shortcuts, search/filtering, drag-and-drop dashboard widgets, print-friendly reports, and a Developer Mode raw-JSON/debug-state panel (the Reports phase's JSON export already covers that need for a technical user).
